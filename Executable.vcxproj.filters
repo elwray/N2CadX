@@ -2,5 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp" />
+    <ClCompile Include="Source\CADraw.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\CADraw.h" />
   </ItemGroup>
 </Project>

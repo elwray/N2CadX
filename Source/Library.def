@@ -1,0 +1,3 @@
+LIBRARY "N2Cad640"
+EXPORTS
+	CADraw_Init =	CADrawInit	@1

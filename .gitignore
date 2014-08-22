@@ -1,7 +1,12 @@
+# VisualStudio folders.
 [Bb]inary/
 [Ii]ntermediate/
 
+# VisualStudio files.
 *.opensdf
 *.sdf
 *.suo
 *.user
+
+# IDA files.
+*.$$$

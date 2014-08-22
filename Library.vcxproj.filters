@@ -2,8 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Source\DllMain.cpp" />
+    <ClCompile Include="Source\CADraw.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Library.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\CADraw.h" />
+    <ClInclude Include="Source\Constants.h" />
   </ItemGroup>
 </Project>
