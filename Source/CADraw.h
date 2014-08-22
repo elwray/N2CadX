@@ -10,8 +10,6 @@ struct SCADrawInitResult
 	RECT rcScreenRect;
 };
 
-SCADrawInitResult* CADrawInit();
-
 void SetScreenVariables();
 BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen);
 void ReleaseSurface();
