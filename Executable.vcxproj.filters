@@ -3,8 +3,10 @@
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp" />
     <ClCompile Include="Source\CADraw.cpp" />
+    <ClCompile Include="Source\Utilites.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\CADraw.h" />
+    <ClInclude Include="Source\Utilites.h" />
   </ItemGroup>
 </Project>

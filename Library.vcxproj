@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Source\CADraw.cpp" />
     <ClCompile Include="Source\DllMain.cpp" />
+    <ClCompile Include="Source\Utilites.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Library.def" />
@@ -20,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Source\CADraw.h" />
     <ClInclude Include="Source\Constants.h" />
+    <ClInclude Include="Source\Utilites.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31CDD6F7-1E71-40D2-9570-441D6CE43B71}</ProjectGuid>

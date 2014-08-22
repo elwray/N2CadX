@@ -12,10 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\CADraw.cpp" />
+    <ClCompile Include="Source\Utilites.cpp" />
     <ClCompile Include="Source\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\CADraw.h" />
+    <ClInclude Include="Source\Utilites.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2E4FF465-6BE6-4199-AB12-9635C1062EA3}</ProjectGuid>
