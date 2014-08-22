@@ -1,0 +1,7 @@
+[Bb]inary/
+[Ii]ntermediate/
+
+*.opensdf
+*.sdf
+*.suo
+*.user
