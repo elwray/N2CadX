@@ -2,25 +2,20 @@
 #include "Constants.h"
 #include "Utilites.h"
 
-SCADrawInitResult	g_sCADRaw = { 0, };
+SCADrawInitResult g_sResult = { 0, };
 
-LPDIRECTDRAW		g_lpDirectDraw = NULL;
-LPDIRECTDRAWSURFACE	g_lpSurface = NULL;
-LPVOID				g_pSurfaceData = NULL;
-LONG				g_lPitch = 0L;
-
-HWND				g_hWnd = NULL;
-BOOL				g_bFullscreen = FALSE;
+LONG g_lPitch = 0L;
+HWND g_hWnd = NULL;
+BOOL g_bFullscreen = FALSE;
 
 INT SetScreenVariables()
 {
-	//g_dwWidth = 640;
-	//g_dwHeight = 480;
-	//g_dwWidth2 = 1280;
-	//g_pdwBuffer = 0;
+	g_sResult.iWidth = Screen_Width;
+	g_sResult.iHeight = Screen_Height;
+	g_sResult.iWidthInBytes = Screen_BytesPerPixel * Screen_Width;
+	g_sResult.pdwBuffer = NULL;
 	//g_dwHeightSecond = 480;
-
-	LPRECT lpRect = &g_sCADRaw.rcScreenRect;
+	LPRECT lpRect = &g_sResult.rcScreenRect;
 	SetRect(lpRect, 0, 0, Screen_Width_1, Screen_Height_1);
 
 	return 0;
@@ -30,12 +25,12 @@ BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen)
 {
 	ShutdownDirectDraw();
 
-	HRESULT hDirectDrawCreateResult = DirectDrawCreate(NULL, &g_lpDirectDraw, NULL);
+	HRESULT hDirectDrawCreateResult = DirectDrawCreate(NULL, &g_sResult.lpDirectDraw, NULL);
 	if (FAILED(hDirectDrawCreateResult))
 		return FALSE;
 
 	const DWORD dwFlags = bFullscreen ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE : DDSCL_NORMAL;
-	HRESULT hSetCooperativeLevelResult = g_lpDirectDraw->SetCooperativeLevel(hWnd, dwFlags);
+	HRESULT hSetCooperativeLevelResult = g_sResult.lpDirectDraw->SetCooperativeLevel(hWnd, dwFlags);
 	if (FAILED(hSetCooperativeLevelResult))
 	{
 		ReleaseDirectDraw();
@@ -50,37 +45,37 @@ BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen)
 
 LPDIRECTDRAWSURFACE ReleaseSurface()
 {
-	if (g_lpSurface != NULL)
+	if (g_sResult.lpDirectDrawSurface != NULL)
 	{
-		g_lpSurface->Release();
-		g_lpSurface = NULL;
+		g_sResult.lpDirectDrawSurface->Release();
+		g_sResult.lpDirectDrawSurface = NULL;
 	}
 
-	return g_lpSurface;
+	return g_sResult.lpDirectDrawSurface;
 }
 
 LPDIRECTDRAW ShutdownDirectDraw()
 {
 	ReleaseSurface();
 
-	if (g_lpDirectDraw != NULL)
+	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_lpDirectDraw->RestoreDisplayMode();
+		g_sResult.lpDirectDraw->RestoreDisplayMode();
 		ReleaseDirectDraw();
 	}
 
-	return g_lpDirectDraw;
+	return g_sResult.lpDirectDraw;
 }
 
 LPDIRECTDRAW ReleaseDirectDraw()
 {
-	if (g_lpDirectDraw != NULL)
+	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_lpDirectDraw->Release();
-		g_lpDirectDraw = NULL;
+		g_sResult.lpDirectDraw->Release();
+		g_sResult.lpDirectDraw = NULL;
 	}
 
-	return g_lpDirectDraw;
+	return g_sResult.lpDirectDraw;
 }
 
 void SetPixelFormatMasks(WORD wRedMask, DWORD dwGreenMask, DWORD dwBlueMask)
@@ -93,7 +88,7 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 
 	if (g_bFullscreen)
 	{
-		HRESULT hResult = g_lpDirectDraw->SetDisplayMode(dwWidth, dwHeight, Screen_BPP);
+		HRESULT hResult = g_sResult.lpDirectDraw->SetDisplayMode(dwWidth, dwHeight, Screen_BPP);
 		if (FAILED(hResult))
 			return FALSE;
 	}
@@ -105,12 +100,12 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 		ddSurfaceDesc.dwFlags = DDSD_CAPS;
 		ddSurfaceDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-		HRESULT hCreateSurfaceResult = g_lpDirectDraw->CreateSurface(&ddSurfaceDesc, &g_lpSurface, NULL);
+		HRESULT hCreateSurfaceResult = g_sResult.lpDirectDraw->CreateSurface(&ddSurfaceDesc, &g_sResult.lpDirectDrawSurface, NULL);
 		if (FAILED(hCreateSurfaceResult))
 			return FALSE;
 
 		ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
-		HRESULT hGetSurfaceDescResult = g_lpSurface->GetSurfaceDesc(&ddSurfaceDesc);
+		HRESULT hGetSurfaceDescResult = g_sResult.lpDirectDrawSurface->GetSurfaceDesc(&ddSurfaceDesc);
 		if (FAILED(hGetSurfaceDescResult))
 		{
 			ReleaseSurface();
@@ -151,7 +146,7 @@ void DrawHorizontalLine(INT x, INT y, INT iLength, WORD wColor)
 	//		iLength = g_rcScreenRect.right;
 	//	if (result <= iLength)
 	//	{
-	//		pBuffer1 = &g_aBuffer2[640 * y + result + (g_pdwBuffer >> 1)];
+	//		pBuffer1 = &g_aBufferPrimary[640 * y + result + (g_pdwBuffer >> 1)];
 	//		if (y >= g_dwHeightSecond)
 	//			pBuffer1 = (char *)pBuffer1 - 614400;   // 640 * 480 * sizeof(WORD)
 	//		LOWORD(v5) = wColor;
@@ -170,7 +165,7 @@ void DrawHorizontalLine(INT x, INT y, INT iLength, WORD wColor)
 	//		}
 	//	}
 	//}
-
+	//return result;
 }
 
 void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor)
@@ -192,7 +187,7 @@ void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor)
 	//	result += 1 - iTempY;
 	//	if (result > 0)
 	//	{
-	//		pBuffer = &g_aBuffer2[640 * iTempY + x + (g_pdwBuffer >> 1)];
+	//		pBuffer = &g_aBufferPrimary[640 * iTempY + x + (g_pdwBuffer >> 1)];
 	//		if (iTempY < g_dwHeightSecond)
 	//		{
 	//			v7 = result - g_dwHeightSecond + iTempY;
@@ -218,7 +213,7 @@ void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor)
 	//		return result;
 	//	}
 	//}
-
+	//return result;
 }
 
 void DrawRect(INT x, INT y, INT iWidth, INT iHeight, WORD wColor)
@@ -229,13 +224,138 @@ void DrawRect(INT x, INT y, INT iWidth, INT iHeight, WORD wColor)
 	DrawVerticalLine  (x + iWidth - 1, y, iHeight, wColor);	//	right, top    -> right, bottom
 }
 
-//	sub_100015E0
+void DrawFilledRect(RECT rcRect, INT iColor)
+{
+	//LONG v2; // edx@1
+	//LONG v3; // ecx@3
+	//LONG v4; // esi@5
+	//LONG v5; // edx@7
+	//LONG result; // eax@7
+	//LONG v7; // edx@11
+	//char *v8; // esi@11
+	//__int32 v9; // edx@13
+	//int v10; // ecx@13
+	//int v11; // ecx@19
+	//__int32 v12; // [sp-Ch] [bp-14h]@13
+
+	//v2 = rcRect.left;
+	//if (rcRect.left < g_rcScreenRect.left)
+	//{
+	//	v2 = g_rcScreenRect.left;
+	//	rcRect.right += rcRect.left - g_rcScreenRect.left;
+	//	rcRect.left = g_rcScreenRect.left;
+	//}
+	//v3 = rcRect.top;
+	//if (rcRect.top < g_rcScreenRect.top)
+	//{
+	//	v3 = g_rcScreenRect.top;
+	//	rcRect.bottom += rcRect.top - g_rcScreenRect.top;
+	//	rcRect.top = g_rcScreenRect.top;
+	//}
+	//v4 = rcRect.right;
+	//if (v2 + rcRect.right - 1 > g_rcScreenRect.right)
+	//{
+	//	v4 = g_rcScreenRect.right - v2 + 1;
+	//	rcRect.right = g_rcScreenRect.right - v2 + 1;
+	//}
+	//v5 = rcRect.bottom;
+	//result = g_rcScreenRect.bottom;
+	//if (v3 + rcRect.bottom - 1 > g_rcScreenRect.bottom)
+	//{
+	//	result = g_rcScreenRect.bottom - v3 + 1;
+	//	v5 = g_rcScreenRect.bottom - v3 + 1;
+	//	rcRect.bottom = g_rcScreenRect.bottom - v3 + 1;
+	//}
+	//if (v4 > 0 && v5 > 0)
+	//{
+	//	v7 = rcRect.bottom;
+	//	v8 = (char *)&g_aBufferPrimary[640 * rcRect.top] + 2 * rcRect.left + g_pdwBuffer;
+	//	result = iColor;
+	//	if (rcRect.top < (unsigned int)g_dwHeightSecond)
+	//	{
+	//		if (rcRect.bottom + rcRect.top <= (unsigned int)g_dwHeightSecond)
+	//			goto LABEL_19;
+	//		v9 = rcRect.bottom - (rcRect.bottom + rcRect.top - g_dwHeightSecond);
+	//		v12 = rcRect.bottom + rcRect.top - g_dwHeightSecond;
+	//		v10 = 0;
+	//		do
+	//		{
+	//			v10 += rcRect.right;
+	//			do
+	//			{
+	//				*(_WORD *)v8 = iColor;
+	//				v8 += 2;
+	//				--v10;
+	//			} while (v10);
+	//			v8 += -2 * rcRect.right + 1280;         // v11 += -2 * a3 + sizeof(WORD) * 640
+	//			--v9;
+	//		} while (v9);
+	//		v7 = v12;
+	//	}
+	//	v8 -= 614400;
+	//LABEL_19:
+	//	v11 = 0;
+	//	do
+	//	{
+	//		v11 += rcRect.right;
+	//		do
+	//		{
+	//			*(_WORD *)v8 = iColor;
+	//			v8 += 2;
+	//			--v11;
+	//		} while (v11);
+	//		v8 += -2 * rcRect.right + 1280;
+	//		--v7;
+	//	} while (v7);
+	//}
+
+}
 
 //	sub_100016D0
 
-//	x_sub_100017F0
+void DrawPointPrimaryBuffer(INT x, INT y, WORD wColor)
+{
+	//LONG result; // eax@1
 
-//	x_sub_10001850
+	//result = g_rcScreenRect.left;
+	//if (x >= g_rcScreenRect.left)
+	//{
+	//	result = g_rcScreenRect.top;
+	//	if (y >= g_rcScreenRect.top)
+	//	{
+	//		if (x <= g_rcScreenRect.right && y <= g_rcScreenRect.bottom)
+	//		{
+	//			result = (g_pdwBuffer >> 1) + x + 640 * y;
+	//			if (y >= g_dwHeightSecond)            // if (y >= 480)
+	//				result -= 307200;                     //   result -= 640 * 480
+	//			g_aBufferPrimary[result] = sColor;
+	//		}
+	//	}
+	//}
+	//return result;
+}
+
+void DrawPointSecondaryBuffer(INT x, INT y, WORD wColor)
+{
+	//LONG result; // eax@1
+
+	//result = g_rcScreenRect.left;
+	//if (x >= g_rcScreenRect.left)
+	//{
+	//	result = g_rcScreenRect.top;
+	//	if (y >= g_rcScreenRect.top)
+	//	{
+	//		if (x <= g_rcScreenRect.right && y <= g_rcScreenRect.bottom)
+	//		{
+	//			result = (g_pdwBuffer >> 1) + x + 640 * y;
+	//			if (y >= g_dwHeightSecond)            // if (y >= 480)
+	//				result -= 307200;                     //   result -= 640 * 480;
+	//			g_aBufferSecondary[result] = sColor;
+	//		}
+	//	}
+	//}
+	//return result;
+}
 
 //	sub_100018B0
 
@@ -245,7 +365,18 @@ void DrawRect(INT x, INT y, INT iWidth, INT iHeight, WORD wColor)
 
 SCADrawInitResult* CADrawInit()
 {
-	return &g_sCADRaw;
+	SetScreenVariables();
+
+	g_sResult.pFnSetScreenVariables = SetScreenVariables;
+	g_sResult.pFnCreateDirectDrawAndSetCooperativeLevel = CreateDirectDrawAndSetCooperativeLevel;
+	g_sResult.pFnShutdownDirectDraw = ShutdownDirectDraw;
+	g_sResult.pFnSetDisplayMode = SetDisplayMode;
+	g_sResult.pFnSetPixelFormatMasks = SetPixelFormatMasks;
+	g_sResult.pFnReleaseSurface = ReleaseSurface;
+	g_sResult.pFnLockSurface = LockSurface;
+	g_sResult.pFnUnlockSurface = UnlockSurface;
+
+	return &g_sResult;
 }
 
 //	x_sub_10001BF0
@@ -278,7 +409,7 @@ BOOL LockSurface()
 {
 	DDSURFACEDESC ddSurfaceDesc;
 	ZeroMemory(&ddSurfaceDesc, sizeof(DDSURFACEDESC));
-	HRESULT hLockResult = g_lpSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
+	HRESULT hLockResult = g_sResult.lpDirectDrawSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
 	if (FAILED(hLockResult))
 	{
 		do
@@ -287,27 +418,27 @@ BOOL LockSurface()
 				return FALSE;
 			if (hLockResult == DDERR_SURFACELOST)
 			{
-				HRESULT hRestoreResult = g_lpSurface->Restore();
+				HRESULT hRestoreResult = g_sResult.lpDirectDrawSurface->Restore();
 				if (FAILED(hRestoreResult))
 					return FALSE;
 			}
 
-			hLockResult = g_lpSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
+			hLockResult = g_sResult.lpDirectDrawSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
 		} 
 		while (FAILED(hLockResult));
 	}
 
 	g_lPitch = ddSurfaceDesc.lPitch;
-	g_pSurfaceData = ddSurfaceDesc.lpSurface;
+	g_sResult.pSurfaceData = ddSurfaceDesc.lpSurface;
 
 	return TRUE;
 }
 
 BOOL UnlockSurface()
 {
-	HRESULT hResult = g_lpSurface->Unlock(NULL);
+	HRESULT hResult = g_sResult.lpDirectDrawSurface->Unlock(NULL);
 
-	g_pSurfaceData = NULL;
+	g_sResult.pSurfaceData = NULL;
 
 	return SUCCEEDED(hResult);
 }
@@ -322,7 +453,7 @@ BOOL CopyDataToDirectDrawSurface(int a1, int a2, int iDirectDrawSurfaceWidth, in
 	//	BOOL bIsSurfaceLocked; // [sp+Ch] [bp-4h]@3
 
 	BOOL bNeedUnlockSurface = FALSE;
-	if (g_pSurfaceData == NULL)
+	if (g_sResult.pSurfaceData == NULL)
 	{
 		if (!LockSurface())
 			return FALSE;
@@ -332,6 +463,7 @@ BOOL CopyDataToDirectDrawSurface(int a1, int a2, int iDirectDrawSurfaceWidth, in
 
 	BYTE* pSource = NULL;
 	BYTE* pDest = NULL;
+
 	//	pDest = (char *)g_pSurfaceData + a5 + a5 + a6 * g_lPitch;
 	//	pSrc = a8 + 2 * (a1 + a2 * a7);
 	//	iScrHeight = iScreenHeight;
@@ -339,13 +471,11 @@ BOOL CopyDataToDirectDrawSurface(int a1, int a2, int iDirectDrawSurfaceWidth, in
 
 	do
 	{
-		const int iCopyItemsCount = iDirectDrawSurfaceWidth / 2;
-		CopyMemoryFast(pDest, pSource, iCopyItemsCount);
+		const int iCopyQuadsCount = iDirectDrawSurfaceWidth / 2;
+		CopyMemoryQuad(pDest, pSource, iCopyQuadsCount);
 
 		//		pSrc += 2 * a7 + -8 * (iScreenWidth >> 2);
 		//		pDest += g_lPitch + -8 * (iScreenWidth >> 2);
-		pSource = 0;
-		pDest = 0;
 
 		--iDirectDrawSurfaceHeight;
 	} 

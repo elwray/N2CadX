@@ -6,7 +6,8 @@
 
 const DWORD Screen_Width = 640;
 const DWORD Screen_Height = 480;
-const DWORD Screen_BPP = 16;
+const DWORD Screen_BytesPerPixel = sizeof(WORD);
+const DWORD Screen_BPP = Screen_BytesPerPixel * 8;
 
 const DWORD Screen_Width_1 = Screen_Width - 1;
 const DWORD Screen_Height_1 = Screen_Height - 1;

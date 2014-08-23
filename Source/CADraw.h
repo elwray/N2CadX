@@ -8,6 +8,28 @@
 struct SCADrawInitResult
 {
 	RECT rcScreenRect;
+	PDWORD pdwBuffer;
+	//
+	INT iWidth;
+	INT iHeight;
+	INT iWidthInBytes;
+	BYTE* pBufferPrimary;
+	BYTE* pBufferSecondary;
+	//
+	LPVOID pSurfaceData;
+
+	//	...
+
+	LPDIRECTDRAW lpDirectDraw;
+	LPDIRECTDRAWSURFACE lpDirectDrawSurface;
+	INT (*pFnSetScreenVariables)();
+	BOOL(*pFnCreateDirectDrawAndSetCooperativeLevel)(HWND, BOOL);
+	LPDIRECTDRAW (*pFnShutdownDirectDraw)();
+	BOOL (*pFnSetDisplayMode)(DWORD, DWORD);
+	void (*pFnSetPixelFormatMasks)(WORD, DWORD, DWORD);
+	LPDIRECTDRAWSURFACE (*pFnReleaseSurface)();
+	BOOL (*pFnLockSurface)();
+	BOOL (*pFnUnlockSurface)();
 };
 
 INT SetScreenVariables();
@@ -20,10 +42,10 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight);
 void DrawHorizontalLine(INT x, INT y, INT iLength, WORD wColor);
 void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor);
 void DrawRect(INT x, INT y, INT iWidth, INT iHeight, WORD wColor);
-//	sub_100015E0
+void DrawFilledRect(RECT rcRect, INT iColor);
 //	sub_100016D0
-//	x_sub_100017F0
-//	x_sub_10001850
+void DrawPointPrimaryBuffer(INT x, INT y, WORD wColor);
+void DrawPointSecondaryBuffer(INT x, INT y, WORD wColor);
 //	sub_100018B0
 //	j_nullsub_1
 //	nullsub_1
