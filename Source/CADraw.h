@@ -9,15 +9,22 @@ struct SCADrawInitResult
 {
 	RECT rcScreenRect;
 	PDWORD pdwBuffer;
-	//
+	DWORD dwHeightSecond;		//	?
 	INT iWidth;
 	INT iHeight;
 	INT iWidthInBytes;
 	BYTE* pBufferPrimary;
 	BYTE* pBufferSecondary;
-	//
+	DWORD dword_1000E444;		//	?
 	LPVOID pSurfaceData;
-
+	DWORD dword_1000E44C;		//	?
+	DWORD dword_1000E450;		//	?
+	DWORD dword_1000E454;		//	?
+	WORD m_wRBitFromLeftOffset;	//	?
+	WORD m_wGBitFromLeftOffset;	//	?
+	WORD m_wBBitFromLeftOffset;	//	?
+	BYTE byte_1000E45E;			//	?
+	BYTE byte_1000E45F;			//	?
 	//	...
 
 	LPDIRECTDRAW lpDirectDraw;
@@ -46,7 +53,7 @@ void DrawFilledRect(RECT rcRect, INT iColor);
 //	sub_100016D0
 void DrawPointPrimaryBuffer(INT x, INT y, WORD wColor);
 void DrawPointSecondaryBuffer(INT x, INT y, WORD wColor);
-//	sub_100018B0
+void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int iDestWidth, BYTE* pDestImage);
 //	j_nullsub_1
 //	nullsub_1
 SCADrawInitResult* CADrawInit();

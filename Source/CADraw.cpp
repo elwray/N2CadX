@@ -14,7 +14,7 @@ INT SetScreenVariables()
 	g_sResult.iHeight = Screen_Height;
 	g_sResult.iWidthInBytes = Screen_BytesPerPixel * Screen_Width;
 	g_sResult.pdwBuffer = NULL;
-	//g_dwHeightSecond = 480;
+	g_sResult.dwHeightSecond = Screen_Height;
 	LPRECT lpRect = &g_sResult.rcScreenRect;
 	SetRect(lpRect, 0, 0, Screen_Width_1, Screen_Height_1);
 
@@ -357,7 +357,66 @@ void DrawPointSecondaryBuffer(INT x, INT y, WORD wColor)
 	//return result;
 }
 
-//	sub_100018B0
+void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int iDestWidth, BYTE* pDestImage)
+{
+	//char *pSrc; // esi@1
+	//char *pDest; // edi@1
+	//int result; // eax@1
+	//int v11; // ebx@1
+	//int v12; // edx@1
+	//int v13; // edx@3
+	//int i; // ecx@4
+	//int j; // ecx@10
+	//int v16; // [sp-10h] [bp-1Ch]@3
+	//int iDestWidtha; // [sp+2Ch] [bp+20h]@1
+
+	//pSrc = (char *)&g_aBufferPrimary[640 * iSrcY] + 2 * iSrcX + g_pdwBuffer;
+	//pDest = &pDestAddress[2 * (iDestX + iDestY * iDestWidth)];
+	//result = a3;
+	//v11 = -2 * a3;
+	//iDestWidtha = 2 * (iDestWidth - a3);
+	//v12 = a4;
+	//if (iSrcY >= g_dwHeightSecond)
+	//{
+	//LABEL_9:
+	//	pSrc -= 614400;
+	//	goto LABEL_10;
+	//}
+	//if (a4 + iSrcY > g_dwHeightSecond)
+	//{
+	//	v16 = a4 + iSrcY - g_dwHeightSecond;
+	//	v13 = a4 - (a4 + iSrcY - g_dwHeightSecond);
+	//	do
+	//	{
+	//		for (i = a3; i; --i)
+	//		{
+	//			*(_WORD *)pDest = *(_WORD *)pSrc;
+	//			pSrc += 2;
+	//			pDest += 2;
+	//		}
+	//		pSrc += v11 + 1280;
+	//		pDest += iDestWidtha;
+	//		--v13;
+	//	} while (v13);
+	//	v12 = v16;
+	//	goto LABEL_9;
+	//}
+	//do
+	//{
+	//LABEL_10:
+	//	for (j = a3; j; --j)
+	//	{
+	//		*(_WORD *)pDest = *(_WORD *)pSrc;
+	//		pSrc += 2;
+	//		pDest += 2;
+	//	}
+	//	pSrc += v11 + 1280;
+	//	pDest += iDestWidtha;
+	//	--v12;
+	//} while (v12);
+	//return result;
+
+}
 
 //	j_nullsub_1
 
