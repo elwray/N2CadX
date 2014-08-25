@@ -6,5 +6,6 @@
 
 void CopyMemoryQuad(LPVOID pDest, LPVOID pSrc, INT iQuadsCount);
 void CopyMemoryDWord(PDWORD pDest, PDWORD pSrc, INT iDWordsCount);
+BOOL IsPowOf2(INT iNumber);
 
 #endif

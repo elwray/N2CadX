@@ -28,3 +28,8 @@ void CopyMemoryDWord(PDWORD pDest, PDWORD pSrc, INT iDWordsCount)
 		--iDWordsCount;
 	}
 }
+
+BOOL IsPowOf2(INT iNumber)
+{
+	return !(iNumber & (iNumber - 1));
+}
