@@ -67,7 +67,7 @@ void DrawPointSecondaryBuffer(INT x, INT y, WORD wColor);
 void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int iDestWidth, BYTE* pDestImage);
 //	j_nullsub_1
 //	nullsub_1
-SCADrawInitResult* CADrawInit();
+SCADrawInitResult* __cdecl CADrawInit();
 //	x_sub_10001BF0
 //	x_sub_10001C80
 //	x_sub_10001D00

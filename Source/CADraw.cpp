@@ -438,7 +438,7 @@ void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int
 
 //	nullsub_1
 
-SCADrawInitResult* CADrawInit()
+SCADrawInitResult* __cdecl CADrawInit()
 {
 	g_sResult.pBufferPrimary = reinterpret_cast<BYTE*>(g_aBufferPrimary);
 	g_sResult.pBufferSecondary = reinterpret_cast<BYTE*>(g_aBufferSecondary);
@@ -460,7 +460,37 @@ SCADrawInitResult* CADrawInit()
 	return &g_sResult;
 }
 
-//	x_sub_10001BF0
+BOOL x_sub_10001BF0(COLOR16* pwSource, COLOR16* pwDest, int iCount)
+{
+	assert(pwSource != nullptr);
+	assert(pwDest != nullptr);
+	assert(iCount > 0);
+
+	if (iCount <= 0)
+		return FALSE;
+
+	int iItemsLeft = iCount;
+	do
+	{
+		if (*pwSource != Purple_Color_565)
+		{
+			//			wCurrentSrcColor = *_pwSrc;
+			//			result = g_dwBBitDoubleMask & ((wCurrentSrcColor & 0x1F) << 11 >> m_wBBitFromLeftOffset);// iBBitMask
+			//			*_pwDest = g_dwRBitDoubleMask & (unsigned __int16)((unsigned __int16)(*_pwSrc & 0xF800) >> m_wRBitFromLeftOffset) | result | g_dwGBitDoubleMask & (5 << (*_pwSrc & 0x7E0) >> m_wGBitFromLeftOffset);
+		}
+		else // *pwSource == Purple_Color_565
+		{
+			*pwDest = Purple_Color_565;
+		}
+
+		++pwSource;
+		++pwDest;
+		--iItemsLeft;
+	} 
+	while (iItemsLeft > 0);
+
+	return TRUE;
+}
 
 //	x_sub_10001C80
 
