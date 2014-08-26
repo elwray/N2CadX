@@ -5,12 +5,22 @@
 #include <Windows.h>
 #include <ddraw.h>
 
+struct SRect
+{
+	DWORD dw0;
+	DWORD dw4;
+	INT x;
+	INT y;
+	INT iWidth;
+	INT iHeight;
+};
+
 struct SCADrawInitResult
 {
 	//	align 8
 	RECT rcScreenRect;
 	UINT uBufferOriginInWords;
-	DWORD dwHeightSecond;		//	?
+	DWORD dwSurfaceHeight;
 	INT iWidth;
 	INT iHeight;
 	INT iWidthInBytes;

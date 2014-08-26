@@ -1,7 +1,7 @@
 #include <cassert>
 #include "CADraw.h"
 #include "Constants.h"
-#include "Utilites.h"
+#include "Utilites2.h"
 
 
 /*
@@ -32,7 +32,7 @@ INT SetScreenVariables()
 	g_sResult.iHeight = Screen_Height;
 	g_sResult.iWidthInBytes = Screen_WidthInBytes;
 	g_sResult.uBufferOriginInWords = 0;
-	g_sResult.dwHeightSecond = Screen_Height;
+	g_sResult.dwSurfaceHeight = Screen_Height;
 	LPRECT lpRect = &g_sResult.rcScreenRect;
 	SetRect(lpRect, 0, 0, Screen_Width_1, Screen_Height_1);
 
@@ -327,7 +327,122 @@ void DrawFilledRect(INT x, INT y, INT iWidth, INT iHeight, INT iColor)
 	//}
 }
 
-//	sub_100016D0
+void sub_100016D0(SRect* pStruct)
+{
+	//LONG v2; // ecx@1
+	//__int32 result; // eax@1
+	//__int32 v4; // edx@2
+	//LONG v5; // edx@3
+	//__int32 v6; // esi@4
+	//unsigned int v7; // ecx@9
+	//int v8; // edx@9
+	//char *pPrimaryBuffer; // esi@9
+	//unsigned int v10; // eax@9
+	//int v11; // edi@9
+	//int v12; // ebp@9
+	//int v13; // ecx@10
+	//bool v14; // cf@10
+	//int v15; // ecx@10
+	//int v16; // edx@11
+	//int v17; // ecx@11
+	//int v18; // ecx@17
+	//int v19; // [sp-10h] [bp-1Ch]@11
+
+	int iRectRight = -1;
+	int iRectBottom = -1;
+	if (pStruct->x < g_sResult.rcScreenRect.left)
+	{
+		iRectRight = pStruct->x - g_sResult.rcScreenRect.left + pStruct->iWidth;
+		if (iRectRight <= 0)
+			return;
+	}
+	if (pStruct->y < g_sResult.rcScreenRect.top)
+	{
+		iRectBottom = pStruct->y - g_sResult.rcScreenRect.top + pStruct->iHeight;
+		if (iRectBottom <= 0)
+			return;
+	}
+
+	if (iRectRight != -1)
+	{
+		pStruct->iWidth = iRectRight;
+		pStruct->x = g_sResult.rcScreenRect.left;
+	}
+	if (iRectBottom != -1)
+	{
+		pStruct->iWidth = iRectBottom;
+		pStruct->y = g_sResult.rcScreenRect.top;
+	}
+
+	
+
+	//		if (v2 + *(_DWORD *)(a2->iWidth) - 1 <= g_rcScreenRect.right
+	//			|| (result = g_rcScreenRect.right - v2 + 1, *(_DWORD *)(a2->iWidth) = result, result > 0))
+	//		{
+	//			if (v5 + *(_DWORD *)(a2->iHeight) - 1 <= g_rcScreenRect.bottom
+	//				|| (result = g_rcScreenRect.bottom - v5 + 1, *(_DWORD *)(a2->iHeight) = result, result > 0))
+	//			{
+	//				v7 = *(_DWORD *)(a2->y);
+	//				v8 = *(_DWORD *)(a2->iHeight);
+	//				pPrimaryBuffer = (char *)&g_aBufferPrimary[640 * *(_DWORD *)(a2->y)]
+	//					+ 2 * *(_DWORD *)(a2->x)
+	//					+ g_uBufferOffsetInWords;
+	//				v10 = *(_DWORD *)(a2 + 24);
+	//				v11 = -*(_DWORD *)(a2->iWidth);
+	//				v12 = dword_1000E468;
+	//				result = (dword_1000E468 & v10) >> 1;
+	//				if (v7 < g_dwHeightSecond)
+	//				{
+	//					v13 = v8 + v7;
+	//					v14 = v13 < (unsigned int)g_dwHeightSecond;
+	//					v15 = v13 - g_dwHeightSecond;
+	//					if (v14 | v15 == 0)
+	//						goto LABEL_17;
+	//					v16 = v8 - v15;
+	//					v19 = v15;
+	//					v17 = 0;
+	//					do
+	//					{
+	//						v17 -= v11;
+	//						do
+	//						{
+	//							LOWORD(a1) = *(_WORD *)pPrimaryBuffer;
+	//							a1 = result + ((v12 & a1) >> 1);
+	//							*(_WORD *)pPrimaryBuffer = a1;
+	//							pPrimaryBuffer += 2;
+	//							--v17;
+	//						}
+	//						while (v17);
+	//						pPrimaryBuffer += 2 * v11 + 1280;
+	//						--v16;
+	//					}
+	//					while (v16);
+	//					v8 = v19;
+	//				}
+	//				pPrimaryBuffer -= 614400;
+	//			LABEL_17:
+	//				v18 = 0;
+	//				do
+	//				{
+	//					v18 -= v11;
+	//					do
+	//					{
+	//						LOWORD(a1) = *(_WORD *)pPrimaryBuffer;
+	//						a1 = result + ((v12 & a1) >> 1);
+	//						*(_WORD *)pPrimaryBuffer = a1;
+	//						pPrimaryBuffer += 2;
+	//						--v18;
+	//					}
+	//					while (v18);
+	//					pPrimaryBuffer += 2 * v11 + 1280;
+	//					--v8;
+	//				}
+	//				while (v8);
+	//				return result;
+	//			}
+	//		}
+
+}
 
 void DrawPointPrimaryBuffer(INT x, INT y, WORD wColor)
 {
@@ -639,7 +754,7 @@ BOOL CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, int iSrcWidth, int iSrcHe
 	do
 	{
 		const int iCopyQuadsCount = iSrcWidth / 2;
-		CopyMemoryQuad(pDest, pSource, iCopyQuadsCount);
+		CopyMemory64(pDest, pSource, iCopyQuadsCount);
 
 		//		pSrc += 2 * a7 + -8 * (iScreenWidth >> 2);
 		//		pDest += g_lPitch + -8 * (iScreenWidth >> 2);

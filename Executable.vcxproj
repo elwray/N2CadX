@@ -49,7 +49,7 @@
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
     <TargetName>N2Cad640</TargetName>
-    <LibraryPath>$(SolutionDir)Libraries;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Libraries\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -58,7 +58,7 @@
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
     <TargetName>N2Cad640</TargetName>
-    <LibraryPath>$(SolutionDir)Libraries;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Libraries\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

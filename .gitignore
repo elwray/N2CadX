@@ -1,6 +1,7 @@
 # VisualStudio folders.
 [Bb]inary/
 [Ii]ntermediate/
+[Ll]ibraries/
 
 # VisualStudio files.
 *.opensdf

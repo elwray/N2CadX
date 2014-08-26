@@ -11,17 +11,35 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\CADraw.cpp" />
+    <ClCompile Include="Source\CADraw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\CADraw2.c" />
     <ClCompile Include="Source\DllMain.cpp" />
-    <ClCompile Include="Source\Utilites.cpp" />
+    <ClCompile Include="Source\Rect.c" />
+    <ClCompile Include="Source\Utilites.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Utilites2.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Library.def" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\CADraw.h" />
+    <ClInclude Include="Source\CADraw.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\CADraw2.h" />
     <ClInclude Include="Source\Constants.h" />
-    <ClInclude Include="Source\Utilites.h" />
+    <ClInclude Include="Source\Rect.h" />
+    <ClInclude Include="Source\Utilites.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\Utilites2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31CDD6F7-1E71-40D2-9570-441D6CE43B71}</ProjectGuid>
