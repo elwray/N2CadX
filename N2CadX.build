@@ -27,8 +27,13 @@
 	<target name="build" description="Compiles the source code.">
 		<exec program="${compiler}">
 			<arg line="-o ${project.name}.dll" />
+			<arg line="-shared" />
 			
-			<arg line="lib\DllMain.c" />
+			<arg line="${project.source.dir}CADraw2.c" />
+			<arg line="${project.source.dir}DllMain.c" />
+			<arg line="${project.source.dir}Utilites2.c" />
+			
+			<arg line="${project.source.dir}Library.def" />
 		</exec>
 	</target>
 </project>

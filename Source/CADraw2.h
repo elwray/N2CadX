@@ -8,6 +8,6 @@ typedef struct _s_cadrawresult_t
 	rect_t rcScreen;
 } cadrawresult_t;
 
-cadrawresult_t* __cdecl CADrawInit();
+__declspec(dllexport) cadrawresult_t* __cdecl CADrawInit();
 
 #endif
