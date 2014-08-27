@@ -14,8 +14,8 @@ LONG g_lPitch = 0L;
 HWND g_hWnd = NULL;
 bool g_bFullscreen = false;
 
-int16_t g_aBufferPrimary[Screen_Size];
-int16_t g_aBufferSecondary[Screen_Size];
+int16_t g_aBufferPrimary16[Screen_Size];
+int16_t g_aBufferSecondary16[Screen_Size];
 int16_t g_aBufferThird[Screen_Size];
 
 
@@ -32,7 +32,7 @@ INT SetScreenVariables()
 	g_sResult.iWidth = Screen_Width;
 	g_sResult.iHeight = Screen_Height;
 	g_sResult.iWidthInBytes = Screen_WidthInBytes;
-	g_sResult.uBufferOriginInWords = 0;
+	g_sResult.uBufferOrigin16 = 0;
 	g_sResult.dwSurfaceHeight = Screen_Height;
 	LPRECT lpRect = &g_sResult.rcScreenRect;
 	SetRect(lpRect, 0, 0, Screen_Width_1, Screen_Height_1);
@@ -558,8 +558,8 @@ void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int
 
 SCADrawInitResult* __cdecl CADrawInit()
 {
-	g_sResult.pBufferPrimary = (int16_t*) g_aBufferPrimary;
-	g_sResult.pBufferSecondary = (int16_t*) g_aBufferSecondary;
+	g_sResult.pBufferPrimary = (int16_t*) g_aBufferPrimary16;
+	g_sResult.pBufferSecondary = (int16_t*) g_aBufferSecondary16;
 	g_sResult.pBufferThird = (int16_t*) g_aBufferThird;
 
 	SetScreenVariables();
@@ -619,7 +619,7 @@ void x_sub_10001D00(INT x, INT y)
 	//	uPositionInBuffer не будет в диапазоне [0:614400).
 	//	Если uPositionInBuffer меньше 0, то прибавляем к uPositionInBuffer число 614400 до тех пор, пока
 	//	uPositionInBuffer не будет в диапазоне [0:614400).
-	UINT uPositionInBuffer = g_sResult.uBufferOriginInWords + GetPointOffsetInBuffer(x, y);
+	UINT uPositionInBuffer = g_sResult.uBufferOrigin16 + GetPointOffsetInBuffer(x, y);
 	if (uPositionInBuffer >= 0)
 	{
 		if (uPositionInBuffer >= Screen_SizeInBytes)
@@ -689,7 +689,71 @@ void x_sub_10001D00(INT x, INT y)
 
 //	x_sub_10001F50_call
 
-//	sub_10001F90
+void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect)
+{
+	//int v4; // eax@1
+	//char *pSrc; // esi@1
+	//char *pDest; // edi@1
+	//int _bottom; // edx@1
+	//unsigned int result; // eax@1
+	//int v9; // ebx@1
+	//int v10; // edx@3
+	//unsigned int v11; // ecx@4
+	//unsigned int iDoublesCopied; // ecx@9
+	//int v13; // [sp-10h] [bp-1Ch]@3
+
+	//v4 = left + 640 * top;
+	//pSrc = (char *)&g_aBufferSecondary16[v4] + g_uBufferOrigin16;
+	//pDest = (char *)&g_aBufferPrimary16[v4] + g_uBufferOrigin16;
+	//_bottom = bottom;
+	//result = right >> 2;
+	//v9 = 2 * (640 - right);
+	//if (top >= g_dwSurfaceHeight)
+	//{
+	//LABEL_8:
+	//	pSrc -= 614400;
+	//	pDest -= 614400;
+	//	goto LABEL_9;
+	//}
+	//if (bottom + top > g_dwSurfaceHeight)
+	//{
+	//	v13 = bottom + top - g_dwSurfaceHeight;
+	//	v10 = bottom - (bottom + top - g_dwSurfaceHeight);
+	//	do
+	//	{
+	//		v11 = right >> 2;
+	//		do
+	//		{
+	//			*(double *)pDest = *(double *)pSrc;
+	//			pSrc += 8;
+	//			pDest += 8;
+	//			--v11;
+	//		} while (v11);
+	//		pSrc += v9;
+	//		pDest += v9;
+	//		--v10;
+	//	} while (v10);
+	//	_bottom = v13;
+	//	goto LABEL_8;
+	//}
+	//do
+	//{
+	//LABEL_9:
+	//	iDoublesCopied = right >> 2;
+	//	do
+	//	{
+	//		*(double *)pDest = *(double *)pSrc;
+	//		pSrc += 8;
+	//		pDest += 8;
+	//		--iDoublesCopied;
+	//	} while (iDoublesCopied);
+	//	pSrc += v9;
+	//	pDest += v9;
+	//	--_bottom;
+	//} while (_bottom);
+	//return result;
+
+}
 
 //	sub_10002030
 
@@ -861,7 +925,7 @@ void sub_100028F0(INT x, INT y, INT iWidth, INT iHeight, int iMinusY)
 	//	int v15; // [sp-10h] [bp-1Ch]@4
 	//	int v16; // [sp-10h] [bp-1Ch]@16
 	
-	BYTE* pBufferThird = (BYTE*) g_aBufferThird[Screen_Width * y] + Screen_BytesPerPixel * x + g_sResult.uBufferOriginInWords;
+	BYTE* pBufferThird = (BYTE*) g_aBufferThird[Screen_Width * y] + Screen_BytesPerPixel * x + g_sResult.uBufferOrigin16;
 
 	//	pBufferThird = (char *)&g_aBufferThird[640 * y] + 2 * x + g_uBufferOriginInWords;
 	//	v6 = iHeight;
