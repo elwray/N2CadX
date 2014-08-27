@@ -702,10 +702,13 @@ void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWi
 	//unsigned int iDoublesCopied; // ecx@9
 	//int v13; // [sp-10h] [bp-1Ch]@3
 
-	//v4 = x + 640 * y;
-	//pSrc = (char *)&g_aBufferSecondary16[v4] + g_uBufferOrigin16;
-	//pDest = (char *)&g_aBufferPrimary16[v4] + g_uBufferOrigin16;
-	//_bottom = iHeight;
+	uint32_t dPointInBuffers = x + Screen_Width * y;
+	uint8_t* pSrc = g_aBufferSecondary16[dPointInBuffers] + g_sResult.uBufferOrigin16;
+	assert(pSrc);
+	uint8_t* pDest = g_aBufferPrimary16[dPointInBuffers] + g_sResult.uBufferOrigin16;
+	assert(pDest);
+
+	//_iHeight = iHeight;
 	//result = iWidth >> 2;
 	//v9 = 2 * (640 - iWidth);
 	//if (y >= g_dwSurfaceHeight)
@@ -733,9 +736,10 @@ void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWi
 	//		pDest += v9;
 	//		--v10;
 	//	} while (v10);
-	//	_bottom = v13;
+	//	_iHeight = v13;
 	//	goto LABEL_8;
 	//}
+
 	//do
 	//{
 	//LABEL_9:
@@ -749,9 +753,8 @@ void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWi
 	//	} while (iDoublesCopied);
 	//	pSrc += v9;
 	//	pDest += v9;
-	//	--_bottom;
-	//} while (_bottom);
-	//return result;
+	//	--_iHeight;
+	//} while (_iHeight);
 }
 
 //	sub_10002030
