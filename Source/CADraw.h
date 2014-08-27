@@ -96,7 +96,7 @@ SCADrawInitResult* __cdecl CADrawInit();
 //	x_sub_10001EE0_call
 //	x_sub_10001F20_call
 //	x_sub_10001F50_call
-void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect);
+void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWidth, uint32_t dHeight);
 //	sub_10002030
 //	sub_100024C0
 //	sub_100027C0

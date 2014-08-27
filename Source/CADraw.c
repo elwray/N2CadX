@@ -689,7 +689,7 @@ void x_sub_10001D00(INT x, INT y)
 
 //	x_sub_10001F50_call
 
-void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect)
+void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWidth, uint32_t dHeight)
 {
 	//int v4; // eax@1
 	//char *pSrc; // esi@1
@@ -702,26 +702,26 @@ void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect)
 	//unsigned int iDoublesCopied; // ecx@9
 	//int v13; // [sp-10h] [bp-1Ch]@3
 
-	//v4 = left + 640 * top;
+	//v4 = x + 640 * y;
 	//pSrc = (char *)&g_aBufferSecondary16[v4] + g_uBufferOrigin16;
 	//pDest = (char *)&g_aBufferPrimary16[v4] + g_uBufferOrigin16;
-	//_bottom = bottom;
-	//result = right >> 2;
-	//v9 = 2 * (640 - right);
-	//if (top >= g_dwSurfaceHeight)
+	//_bottom = iHeight;
+	//result = iWidth >> 2;
+	//v9 = 2 * (640 - iWidth);
+	//if (y >= g_dwSurfaceHeight)
 	//{
 	//LABEL_8:
 	//	pSrc -= 614400;
 	//	pDest -= 614400;
 	//	goto LABEL_9;
 	//}
-	//if (bottom + top > g_dwSurfaceHeight)
+	//if (iHeight + y > g_dwSurfaceHeight)
 	//{
-	//	v13 = bottom + top - g_dwSurfaceHeight;
-	//	v10 = bottom - (bottom + top - g_dwSurfaceHeight);
+	//	v13 = iHeight + y - g_dwSurfaceHeight;
+	//	v10 = iHeight - (iHeight + y - g_dwSurfaceHeight);
 	//	do
 	//	{
-	//		v11 = right >> 2;
+	//		v11 = iWidth >> 2;
 	//		do
 	//		{
 	//			*(double *)pDest = *(double *)pSrc;
@@ -739,7 +739,7 @@ void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect)
 	//do
 	//{
 	//LABEL_9:
-	//	iDoublesCopied = right >> 2;
+	//	iDoublesCopied = iWidth >> 2;
 	//	do
 	//	{
 	//		*(double *)pDest = *(double *)pSrc;
@@ -752,7 +752,6 @@ void CopyFromSecondaryBufferToPrimaryBuffer(RECT rect)
 	//	--_bottom;
 	//} while (_bottom);
 	//return result;
-
 }
 
 //	sub_10002030
