@@ -1,12 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\DllMain.cpp" />
-    <ClCompile Include="Source\CADraw.cpp" />
-    <ClCompile Include="Source\Utilites.cpp" />
-    <ClCompile Include="Source\Utilites2.c" />
-    <ClCompile Include="Source\CADraw2.c" />
-    <ClCompile Include="Source\Rect.c" />
+    <ClCompile Include="Source\Utilites.c" />
+    <ClCompile Include="Source\DllMain.c" />
+    <ClCompile Include="Source\CADraw.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Library.def" />
@@ -15,8 +12,5 @@
     <ClInclude Include="Source\CADraw.h" />
     <ClInclude Include="Source\Constants.h" />
     <ClInclude Include="Source\Utilites.h" />
-    <ClInclude Include="Source\Utilites2.h" />
-    <ClInclude Include="Source\CADraw2.h" />
-    <ClInclude Include="Source\Rect.h" />
   </ItemGroup>
 </Project>

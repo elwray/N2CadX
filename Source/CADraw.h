@@ -4,18 +4,24 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <ddraw.h>
+#include <stdint.h>
 
-struct SRect
+
+/*
+	Типы данных.
+*/
+struct _Rect
 {
-	DWORD dw0;
-	DWORD dw4;
-	INT x;
-	INT y;
-	INT iWidth;
-	INT iHeight;
+	int32_t dw0;
+	int32_t dw4;
+	int32_t x;
+	int32_t y;
+	int32_t iWidth;
+	int32_t iHeight;
 };
+typedef struct _Rect SRect;
 
-struct SCADrawInitResult
+struct _SCADrawInitResult
 {
 	//	align 8
 	RECT rcScreenRect;
@@ -59,7 +65,12 @@ struct SCADrawInitResult
 	BOOL (*pFnLockSurface)();
 	BOOL (*pFnUnlockSurface)();
 };
+typedef struct _SCADrawInitResult SCADrawInitResult;
 
+
+/*
+	Прототипы.
+*/
 INT SetScreenVariables();
 BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen);
 LPDIRECTDRAWSURFACE ReleaseSurface();

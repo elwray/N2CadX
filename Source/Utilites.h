@@ -1,9 +1,9 @@
 #ifndef UTILITES_H
 #define UTILITES_H
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /*
 	Макросы.
@@ -13,8 +13,8 @@
 /*
 	Прототипы.
 */
-void CopyMemoryQuad(LPVOID pDest, LPVOID pSrc, INT iQuadsCount);
-void CopyMemoryDWord(PDWORD pDest, PDWORD pSrc, INT iDWordsCount);
-BOOL IsPowOf2(INT iNumber);
+void copy_memory32(void* p_dest, void* p_src, uint32_t dcount);
+void copy_memory64(void* p_dest, void* p_src, uint32_t dcount);
+bool is_pow2(uint32_t dnumber);
 
 #endif

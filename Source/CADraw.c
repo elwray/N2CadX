@@ -1,7 +1,8 @@
-#include <cassert>
+#include <assert.h>
+#include <stdbool.h>
 #include "CADraw.h"
 #include "Constants.h"
-#include "Utilites2.h"
+#include "Utilites.h"
 
 
 /*
@@ -11,11 +12,11 @@ SCADrawInitResult g_sResult = { 0, };
 
 LONG g_lPitch = 0L;
 HWND g_hWnd = NULL;
-BOOL g_bFullscreen = FALSE;
+bool g_bFullscreen = false;
 
-WORD g_aBufferPrimary[Screen_Size];
-WORD g_aBufferSecondary[Screen_Size];
-WORD g_aBufferThird[Screen_Size];
+int16_t g_aBufferPrimary[Screen_Size];
+int16_t g_aBufferSecondary[Screen_Size];
+int16_t g_aBufferThird[Screen_Size];
 
 
 /*
@@ -43,15 +44,17 @@ BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen)
 {
 	assert(hWnd != NULL);
 
+	const DWORD dwFlags = bFullscreen ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE : DDSCL_NORMAL;
+	HRESULT hResult;
+
 	ShutdownDirectDraw();
 
-	HRESULT hDirectDrawCreateResult = DirectDrawCreate(NULL, &g_sResult.lpDirectDraw, NULL);
-	if (FAILED(hDirectDrawCreateResult))
+	hResult = DirectDrawCreate(NULL, &g_sResult.lpDirectDraw, NULL);
+	if (FAILED(hResult))
 		return FALSE;
-
-	const DWORD dwFlags = bFullscreen ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE : DDSCL_NORMAL;
-	HRESULT hSetCooperativeLevelResult = g_sResult.lpDirectDraw->SetCooperativeLevel(hWnd, dwFlags);
-	if (FAILED(hSetCooperativeLevelResult))
+	
+	hResult = g_sResult.lpDirectDraw->lpVtbl->SetCooperativeLevel(g_sResult.lpDirectDraw, hWnd, dwFlags);
+	if (FAILED(hResult))
 	{
 		ReleaseDirectDraw();
 		return FALSE;
@@ -67,7 +70,7 @@ LPDIRECTDRAWSURFACE ReleaseSurface()
 {
 	if (g_sResult.lpDirectDrawSurface != NULL)
 	{
-		g_sResult.lpDirectDrawSurface->Release();
+		g_sResult.lpDirectDrawSurface->lpVtbl->Release(g_sResult.lpDirectDrawSurface);
 		g_sResult.lpDirectDrawSurface = NULL;
 	}
 
@@ -80,7 +83,7 @@ LPDIRECTDRAW ShutdownDirectDraw()
 
 	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_sResult.lpDirectDraw->RestoreDisplayMode();
+		g_sResult.lpDirectDraw->lpVtbl->RestoreDisplayMode(g_sResult.lpDirectDraw);
 		ReleaseDirectDraw();
 	}
 
@@ -91,7 +94,7 @@ LPDIRECTDRAW ReleaseDirectDraw()
 {
 	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_sResult.lpDirectDraw->Release();
+		g_sResult.lpDirectDraw->lpVtbl->Release(g_sResult.lpDirectDraw);
 		g_sResult.lpDirectDraw = NULL;
 	}
 
@@ -104,14 +107,14 @@ void SetPixelFormatMasks(WORD wRedMask, DWORD dwGreenMask, DWORD dwBlueMask)
 
 BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 {
-	assert(IsPowOf2(dwWidth));
-	assert(IsPowOf2(dwHeight));
+	assert(is_pow2(dwWidth));
+	assert(is_pow2(dwHeight));
 
 	ReleaseSurface();
 
 	if (g_bFullscreen)
 	{
-		HRESULT hResult = g_sResult.lpDirectDraw->SetDisplayMode(dwWidth, dwHeight, Screen_BPP);
+		HRESULT hResult = g_sResult.lpDirectDraw->lpVtbl->SetDisplayMode(g_sResult.lpDirectDraw, dwWidth, dwHeight, Screen_BPP);
 		if (FAILED(hResult))
 			return FALSE;
 	}
@@ -123,12 +126,12 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 		ddSurfaceDesc.dwFlags = DDSD_CAPS;
 		ddSurfaceDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-		HRESULT hCreateSurfaceResult = g_sResult.lpDirectDraw->CreateSurface(&ddSurfaceDesc, &g_sResult.lpDirectDrawSurface, NULL);
+		HRESULT hCreateSurfaceResult = g_sResult.lpDirectDraw->lpVtbl->CreateSurface(g_sResult.lpDirectDraw, &ddSurfaceDesc, &g_sResult.lpDirectDrawSurface, NULL);
 		if (FAILED(hCreateSurfaceResult))
 			return FALSE;
 
 		ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
-		HRESULT hGetSurfaceDescResult = g_sResult.lpDirectDrawSurface->GetSurfaceDesc(&ddSurfaceDesc);
+		HRESULT hGetSurfaceDescResult = g_sResult.lpDirectDrawSurface->lpVtbl->GetSurfaceDesc(g_sResult.lpDirectDrawSurface, &ddSurfaceDesc);
 		if (FAILED(hGetSurfaceDescResult))
 		{
 			ReleaseSurface();
@@ -261,25 +264,25 @@ void DrawFilledRect(INT x, INT y, INT iWidth, INT iHeight, INT iColor)
 	//int v11; // ecx@19
 	//__int32 v12; // [sp-Ch] [bp-14h]@13
 
-	const RECT& rcScreenRect = g_sResult.rcScreenRect;
+	const RECT* rcScreenRect = &g_sResult.rcScreenRect;
 
-	if (x < rcScreenRect.left)
+	if (x < rcScreenRect->left)
 	{
-		x = rcScreenRect.left;
-		iWidth += x - rcScreenRect.left;
+		x = rcScreenRect->left;
+		iWidth += x - rcScreenRect->left;
 	}
-	if (y < rcScreenRect.top)
+	if (y < rcScreenRect->top)
 	{
-		y = rcScreenRect.top;
-		iHeight += y - rcScreenRect.top;
+		y = rcScreenRect->top;
+		iHeight += y - rcScreenRect->top;
 	}
-	if (x + iWidth - 1 > rcScreenRect.right)
+	if (x + iWidth - 1 > rcScreenRect->right)
 	{
-		iWidth = rcScreenRect.right - x + 1;
+		iWidth = rcScreenRect->right - x + 1;
 	}
-	if (y + iHeight - 1 > rcScreenRect.bottom)
+	if (y + iHeight - 1 > rcScreenRect->bottom)
 	{
-		iHeight = rcScreenRect.bottom - y + 1;
+		iHeight = rcScreenRect->bottom - y + 1;
 	}
 	if (iWidth <= 0 || iHeight <= 0)
 		return;
@@ -555,9 +558,9 @@ void DrawImage(INT iSrcX, int iSrcY, int a3, int a4, int iDestX, int iDestY, int
 
 SCADrawInitResult* __cdecl CADrawInit()
 {
-	g_sResult.pBufferPrimary = reinterpret_cast<BYTE*>(g_aBufferPrimary);
-	g_sResult.pBufferSecondary = reinterpret_cast<BYTE*>(g_aBufferSecondary);
-	g_sResult.pBufferThird = reinterpret_cast<BYTE*>(g_aBufferThird);
+	g_sResult.pBufferPrimary = (int16_t*) g_aBufferPrimary;
+	g_sResult.pBufferSecondary = (int16_t*) g_aBufferSecondary;
+	g_sResult.pBufferThird = (int16_t*) g_aBufferThird;
 
 	SetScreenVariables();
 
@@ -577,8 +580,8 @@ SCADrawInitResult* __cdecl CADrawInit()
 
 BOOL x_sub_10001BF0(COLOR16* pwSource, COLOR16* pwDest, int iCount)
 {
-	assert(pwSource != nullptr);
-	assert(pwDest != nullptr);
+	assert(pwSource != NULL);
+	assert(pwDest != NULL);
 	assert(iCount > 0);
 
 	if (iCount <= 0)
@@ -702,7 +705,7 @@ BOOL LockSurface()
 {
 	DDSURFACEDESC ddSurfaceDesc;
 	ZeroMemory(&ddSurfaceDesc, sizeof(DDSURFACEDESC));
-	HRESULT hLockResult = g_sResult.lpDirectDrawSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
+	HRESULT hLockResult = g_sResult.lpDirectDrawSurface->lpVtbl->Lock(g_sResult.lpDirectDrawSurface, NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
 	if (FAILED(hLockResult))
 	{
 		do
@@ -711,12 +714,12 @@ BOOL LockSurface()
 				return FALSE;
 			if (hLockResult == DDERR_SURFACELOST)
 			{
-				HRESULT hRestoreResult = g_sResult.lpDirectDrawSurface->Restore();
+				HRESULT hRestoreResult = g_sResult.lpDirectDrawSurface->lpVtbl->Restore(g_sResult.lpDirectDrawSurface);
 				if (FAILED(hRestoreResult))
 					return FALSE;
 			}
 
-			hLockResult = g_sResult.lpDirectDrawSurface->Lock(NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
+			hLockResult = g_sResult.lpDirectDrawSurface->lpVtbl->Lock(g_sResult.lpDirectDrawSurface, NULL, &ddSurfaceDesc, DDLOCK_WAIT, NULL);
 		} 
 		while (FAILED(hLockResult));
 	}
@@ -729,7 +732,7 @@ BOOL LockSurface()
 
 BOOL UnlockSurface()
 {
-	HRESULT hResult = g_sResult.lpDirectDrawSurface->Unlock(NULL);
+	HRESULT hResult = g_sResult.lpDirectDrawSurface->lpVtbl->Unlock(g_sResult.lpDirectDrawSurface, NULL);
 
 	g_sResult.pSurfaceData = NULL;
 
@@ -749,12 +752,12 @@ BOOL CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, int iSrcWidth, int iSrcHe
 
 	//	pSrc = a8 + 2 * (iSrcX + iSrcY * a7);
 	BYTE* pSource = NULL;
-	BYTE* pDest = reinterpret_cast<PBYTE>(g_sResult.pSurfaceData) + iDestX + iDestY * g_lPitch;
+	BYTE* pDest = (PBYTE) g_sResult.pSurfaceData + iDestX + iDestY * g_lPitch;
 
 	do
 	{
 		const int iCopyQuadsCount = iSrcWidth / 2;
-		CopyMemory64(pDest, pSource, iCopyQuadsCount);
+		copy_memory64(pDest, pSource, iCopyQuadsCount);
 
 		//		pSrc += 2 * a7 + -8 * (iScreenWidth >> 2);
 		//		pDest += g_lPitch + -8 * (iScreenWidth >> 2);
@@ -858,7 +861,7 @@ void sub_100028F0(INT x, INT y, INT iWidth, INT iHeight, int iMinusY)
 	//	int v15; // [sp-10h] [bp-1Ch]@4
 	//	int v16; // [sp-10h] [bp-1Ch]@16
 	
-	BYTE* pBufferThird = reinterpret_cast<BYTE*>(g_aBufferThird[Screen_Width * y]) + Screen_BytesPerPixel * x + g_sResult.uBufferOriginInWords;
+	BYTE* pBufferThird = (BYTE*) g_aBufferThird[Screen_Width * y] + Screen_BytesPerPixel * x + g_sResult.uBufferOriginInWords;
 
 	//	pBufferThird = (char *)&g_aBufferThird[640 * y] + 2 * x + g_uBufferOriginInWords;
 	//	v6 = iHeight;
