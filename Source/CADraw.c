@@ -53,7 +53,7 @@ BOOL CreateDirectDrawAndSetCooperativeLevel(HWND hWnd, BOOL bFullscreen)
 	if (FAILED(hResult))
 		return FALSE;
 	
-	hResult = g_sResult.lpDirectDraw->lpVtbl->SetCooperativeLevel(g_sResult.lpDirectDraw, hWnd, dwFlags);
+	hResult = IDirectDraw_SetCooperativeLevel(g_sResult.lpDirectDraw, hWnd, dwFlags);
 	if (FAILED(hResult))
 	{
 		ReleaseDirectDraw();
@@ -70,7 +70,7 @@ LPDIRECTDRAWSURFACE ReleaseSurface()
 {
 	if (g_sResult.lpDirectDrawSurface != NULL)
 	{
-		g_sResult.lpDirectDrawSurface->lpVtbl->Release(g_sResult.lpDirectDrawSurface);
+		IDirectDrawSurface_Release(g_sResult.lpDirectDrawSurface);
 		g_sResult.lpDirectDrawSurface = NULL;
 	}
 
@@ -83,7 +83,7 @@ LPDIRECTDRAW ShutdownDirectDraw()
 
 	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_sResult.lpDirectDraw->lpVtbl->RestoreDisplayMode(g_sResult.lpDirectDraw);
+		IDirectDraw_RestoreDisplayMode(g_sResult.lpDirectDraw);
 		ReleaseDirectDraw();
 	}
 
@@ -94,7 +94,7 @@ LPDIRECTDRAW ReleaseDirectDraw()
 {
 	if (g_sResult.lpDirectDraw != NULL)
 	{
-		g_sResult.lpDirectDraw->lpVtbl->Release(g_sResult.lpDirectDraw);
+		IDirectDraw_Release(g_sResult.lpDirectDraw);
 		g_sResult.lpDirectDraw = NULL;
 	}
 
@@ -114,7 +114,7 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 
 	if (g_bFullscreen)
 	{
-		HRESULT hResult = g_sResult.lpDirectDraw->lpVtbl->SetDisplayMode(g_sResult.lpDirectDraw, dwWidth, dwHeight, Screen_BPP);
+		HRESULT hResult = IDirectDraw_SetDisplayMode(g_sResult.lpDirectDraw, dwWidth, dwHeight, Screen_BPP);
 		if (FAILED(hResult))
 			return FALSE;
 	}
@@ -126,18 +126,19 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 		ddSurfaceDesc.dwFlags = DDSD_CAPS;
 		ddSurfaceDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-		HRESULT hCreateSurfaceResult = g_sResult.lpDirectDraw->lpVtbl->CreateSurface(g_sResult.lpDirectDraw, &ddSurfaceDesc, &g_sResult.lpDirectDrawSurface, NULL);
+		HRESULT hCreateSurfaceResult = IDirectDraw_CreateSurface(g_sResult.lpDirectDraw, &ddSurfaceDesc, &g_sResult.lpDirectDrawSurface, NULL);
 		if (FAILED(hCreateSurfaceResult))
 			return FALSE;
 
 		ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
-		HRESULT hGetSurfaceDescResult = g_sResult.lpDirectDrawSurface->lpVtbl->GetSurfaceDesc(g_sResult.lpDirectDrawSurface, &ddSurfaceDesc);
+		HRESULT hGetSurfaceDescResult = IDirectDrawSurface_GetSurfaceDesc(g_sResult.lpDirectDrawSurface, &ddSurfaceDesc);
 		if (FAILED(hGetSurfaceDescResult))
 		{
 			ReleaseSurface();
 			return FALSE;
 		}
 
+		//	TODO: implement this.
 		//SetGamePixelFormat(
 		//	SLOWORD(ddSurfaceDescription.ddpfPixelFormat.dwRBitMask),
 		//	ddSurfaceDescription.ddpfPixelFormat.dwGBitMask,
@@ -149,70 +150,50 @@ BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 	return 1;
 }
 
-void DrawHorizontalLine(INT x, INT y, INT iLength, WORD wColor)
+void DrawHorizontalLine(int32_t x, int32_t y, int32_t dLength, uint16_t wColor)
 {
-	//__int32 result; // eax@1
-	//int v5; // edx@1
-	//LONG iLength; // ecx@1
-	//void *pBuffer1; // edi@8
-	//int iCount; // ecx@10
-	//int iValue; // edx@10
-	//unsigned __int8 v10; // cf@10
-	//DWORD *v11; // edi@10
-	//int i; // ecx@10
+	assert(dLength > 0);
 
-	//result = x;
-	//HIWORD(v5) = HIWORD(y);
-	//iLength = iSize + x - 1;
-	//if (y >= g_rcScreenRect.top && y <= g_rcScreenRect.bottom)
-	//{
-	//	if (x < g_rcScreenRect.left)
-	//		result = g_rcScreenRect.left;
-	//	if (iLength > g_rcScreenRect.right)
-	//		iLength = g_rcScreenRect.right;
-	//	if (result <= iLength)
-	//	{
-	//		pBuffer1 = &g_aBufferPrimary[640 * y + result + (g_pdwBuffer >> 1)];
-	//		if (y >= g_dwHeightSecond)
-	//			pBuffer1 = (char *)pBuffer1 - 614400;   // 640 * 480 * sizeof(WORD)
-	//		LOWORD(v5) = wColor;
-	//		iCount = iLength - result + 1;
-	//		iValue = v5 << 16;
-	//		LOWORD(iValue) = wColor;
-	//		result = iValue;
-	//		v10 = iCount & 1;
-	//		iCount = (unsigned int)iCount >> 1;
-	//		memset32(pBuffer1, iValue, iCount);
-	//		v11 = (DWORD *)((char *)pBuffer1 + 4 * iCount);
-	//		for (i = v10; i; --i)
-	//		{
-	//			*(_WORD *)v11 = wColor;
-	//			v11 = (DWORD *)((char *)v11 + 2);
-	//		}
-	//	}
-	//}
-	//return result;
+	if (y < g_sResult.rcScreenRect.top || y > g_sResult.rcScreenRect.bottom)
+		return;
+
+	int32_t dRightX = x + dLength - 1;
+	if (dRightX <= 0)
+		return;
+	if (dRightX > g_sResult.rcScreenRect.right)
+		dRightX = g_sResult.rcScreenRect.right;
+	if (x < g_sResult.rcScreenRect.left)
+		x = g_sResult.rcScreenRect.left;
+
+	uint8_t* pBuffer8 = (uint8_t*) g_aBufferPrimary16[Screen_Width * y + x + (g_sResult.uBufferOrigin16 / 2)];
+	if (y >= g_sResult.dwSurfaceHeight)
+		pBuffer8 -= Screen_SizeInBytes;
+
+	do
+	{
+		((uint16_t*) pBuffer8) = wColor;
+		pBuffer8 += sizeof(wColor);
+	}
+	while (--dRightX);
 }
 
-void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor)
+void DrawVerticalLine(int32_t x, int32_t y, int32_t dLength, uint16_t wColor)
 {
-	//int iTempY; // edx@1
-	//LONG result; // eax@1
-	//__int16 *pBuffer; // ecx@8
-	//int v7; // edx@9
-	//int v8; // eax@10
+	assert(dLength > 0);
 
-	//iTempY = y;
-	//result = iSize + y - 1;
-	//if (x >= g_rcScreenRect.left && x <= g_rcScreenRect.right)
-	//{
-	//	if (y < g_rcScreenRect.top)
-	//		iTempY = g_rcScreenRect.top;
-	//	if (result > g_rcScreenRect.bottom)
-	//		result = g_rcScreenRect.bottom;
-	//	result += 1 - iTempY;
-	//	if (result > 0)
-	//	{
+	if (x < g_sResult.rcScreenRect.left || x > g_sResult.rcScreenRect.right)
+		return;
+
+	int32_t dBottomY = y + dLength - 1;
+	if (dBottomY <= 0)
+		return;
+	if (dBottomY > g_sResult.rcScreenRect.bottom)
+		dBottomY = g_sResult.rcScreenRect.bottom;
+	if (y < g_sResult.rcScreenRect.top)
+		y = g_sResult.rcScreenRect.top;
+
+	uint8_t* pBuffer8 = (uint8_t*) g_aBufferPrimary16[Screen_Width * y + x + (g_sResult.uBufferOrigin16 / 2)];
+
 	//		pBuffer = &g_aBufferPrimary[640 * iTempY + x + (g_pdwBuffer >> 1)];
 	//		if (iTempY < g_dwHeightSecond)
 	//		{

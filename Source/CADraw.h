@@ -23,7 +23,8 @@ typedef struct _Rect SRect;
 
 struct _SCADrawInitResult
 {
-	//	align 8
+//	align 8
+	//	Rectangle of g_wPrimaryBuffer16.
 	RECT rcScreenRect;
 	UINT uBufferOrigin16;
 	DWORD dwSurfaceHeight;
@@ -78,7 +79,7 @@ LPDIRECTDRAW ShutdownDirectDraw();
 LPDIRECTDRAW ReleaseDirectDraw();
 void SetPixelFormatMasks(WORD wRedMask, DWORD dwGreenMask, DWORD dwBlueMask);
 BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight);
-void DrawHorizontalLine(INT x, INT y, INT iLength, WORD wColor);
+void DrawHorizontalLine(int32_t x, int32_t y, int32_t dLength, uint16_t wColor);
 void DrawVerticalLine(INT x, INT y, INT iLength, WORD wColor);
 void DrawRect(INT x, INT y, INT iWidth, INT iHeight, WORD wColor);
 void DrawFilledRect(INT x, INT y, INT iWidth, INT iHeight, INT iColor);
