@@ -13,8 +13,9 @@
 /*
 	Прототипы.
 */
-void copy_memory32(void* p_dest, void* p_src, uint32_t dcount);
-void copy_memory64(void* p_dest, void* p_src, uint32_t dcount);
-bool is_pow2(uint32_t dnumber);
+void CopyMemory16(void* pDest, void* pSrc, uint32_t dCount);
+void CopyMemory32(void* pDest, void* pSrc, uint32_t dCount);
+void CopyMemory64(void* pDest, void* pSrc, uint32_t dCount);
+bool IsPow2(uint32_t dNumber);
 
 #endif

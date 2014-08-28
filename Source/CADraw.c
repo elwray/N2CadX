@@ -107,8 +107,8 @@ void SetPixelFormatMasks(WORD wRedMask, DWORD dwGreenMask, DWORD dwBlueMask)
 
 BOOL SetDisplayMode(DWORD dwWidth, DWORD dwHeight)
 {
-	assert(is_pow2(dwWidth));
-	assert(is_pow2(dwHeight));
+	assert(IsPow2(dwWidth));
+	assert(IsPow2(dwHeight));
 
 	ReleaseSurface();
 
@@ -823,7 +823,7 @@ BOOL CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, int iSrcWidth, int iSrcHe
 	do
 	{
 		const int iCopyQuadsCount = iSrcWidth / 2;
-		copy_memory64(pDest, pSource, iCopyQuadsCount);
+		CopyMemory64(pDest, pSource, iCopyQuadsCount);
 
 		//		pSrc += 2 * a7 + -8 * (iScreenWidth >> 2);
 		//		pDest += g_lPitch + -8 * (iScreenWidth >> 2);
@@ -841,7 +841,24 @@ BOOL CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, int iSrcWidth, int iSrcHe
 	return TRUE;
 }
 
-//	sub_10002B10
+void CopyLines16(uint32_t dSrcX, uint32_t dSrcY, uint32_t dSrcWidth, uint8_t* pSrc, 
+	uint32_t dDestX, uint32_t dDestY, uint32_t dDestWidth, uint8_t* pDest, 
+	uint32_t iHorizontalLength, uint32_t iVerticalLength)
+{
+	pSrc += 2 * (dSrcX + dSrcY * dSrcWidth);
+	pDest += 2 * (dDestX + dDestY * dDestWidth);
+
+	uint32_t dSrcStep = 2 * dSrcWidth + -2 * iHorizontalLength;
+	uint32_t dDestStep = 2 * dDestWidth + -2 * iHorizontalLength;
+	do
+	{
+		CopyMemory16(pDest, pSrc, iHorizontalLength);
+
+		pSrc += dSrcStep;
+		pDest += dDestStep;
+	} 
+	while (--iVerticalLength);
+}
 
 BOOL CopyFromPrimaryBufferToDirectDrawSurface()
 {

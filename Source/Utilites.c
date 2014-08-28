@@ -4,33 +4,46 @@
 /*
 	Функции.
 */
-void copy_memory32(void* p_dest, void* p_src, uint32_t dcount)
+void CopyMemory16(void* pDest, void* pSrc, uint32_t dCount)
 {
-	assert(p_dest);
-	assert(p_src);
-	assert(dcount > 0);
+	assert(pDest);
+	assert(pSrc);
+	assert(dCount > 0);
 
 	do
 	{
-		*((int32_t*) p_dest)++ = *((int32_t*) p_src)++;
+		*((int16_t*) pDest)++ = *((int16_t*) pSrc)++;
 	} 
-	while (--dcount);
+	while (--dCount);
 }
 
-void copy_memory64(void* p_dest, void* p_src, uint32_t dcount)
+void CopyMemory32(void* pDest, void* pSrc, uint32_t dCount)
 {
-	assert(p_dest);
-	assert(p_src);
-	assert(dcount > 0);
+	assert(pDest);
+	assert(pSrc);
+	assert(dCount > 0);
 
 	do
 	{
-		*((uint64_t*) p_dest)++ = *((uint64_t*) p_src)++;
+		*((int32_t*) pDest)++ = *((int32_t*) pSrc)++;
 	} 
-	while (--dcount);
+	while (--dCount);
 }
 
-bool is_pow2(uint32_t dNumber)
+void CopyMemory64(void* pDest, void* pSrc, uint32_t dCount)
+{
+	assert(pDest);
+	assert(pSrc);
+	assert(dCount > 0);
+
+	do
+	{
+		*((uint64_t*) pDest)++ = *((uint64_t*) pSrc)++;
+	} 
+	while (--dCount);
+}
+
+bool IsPow2(uint32_t dNumber)
 {
 	return dNumber && !(dNumber & (dNumber - 1));
 }

@@ -105,7 +105,9 @@ void CopyFromSecondaryBufferToPrimaryBuffer(uint32_t x, uint32_t y, uint32_t dWi
 BOOL LockSurface();
 BOOL UnlockSurface();
 BOOL CopyDataToDirectDrawSurface();
-//	sub_10002B10
+void CopyLines16(uint32_t dSrcX, uint32_t dSrcY, uint32_t dSrcWidth, uint8_t* pSrc, 
+	uint32_t dDestX, uint32_t dDestY, uint32_t dDestWidth, uint8_t* pDest, 
+	uint32_t iHorizontalLength, uint32_t iVerticalLength);
 BOOL CopyFromPrimaryBufferToDirectDrawSurface();
 //	sub_10002C70
 //	sub_10003090
