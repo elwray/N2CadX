@@ -16,10 +16,10 @@ N2CadX - проект, на данный момент, основной цель
 
 Для работы понадобится:
 * Microsoft Visual Studio 2013
-* IDA 6.6 с модулем Hex Rays
+* IDA v.6.6 с модулем Hex Rays
 
 ## Обратная связь
 
-Связаться со мной можно:
-почта (elwray.ru@gmail.com)[elwray.ru@gmail.com]
-skype (dimaermakov)[skype:dimaermakov]
+Если у Вас есть какие-либо идеи, либо хотит оказать помощь в разработке свяжитесь со мной:
+- почта: elwray.ru@gmail.com
+- skype: dimaermakov
