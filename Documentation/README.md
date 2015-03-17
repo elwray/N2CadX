@@ -19,14 +19,14 @@
 - [ ] Затенение объекта
 - [ ] Растяжение объекта
 - [ ] Отсечение невидимых пикселей
+- [ ] Очистка буфера
 
 
 
-
-WORD red_mask = 0xF800;
-WORD green_mask = 0x7E0;
-WORD blue_mask = 0x1F;
-
-BYTE red_value = (pixel & red_mask) >> 11;
-BYTE green_value = (pixel & green_mask) >> 5;
-BYTE blue_value = (pixel & blue_mask);
+### Константы
+* WORD red_mask = 0xF800;
+* WORD green_mask = 0x7E0;
+* WORD blue_mask = 0x1F;
+* BYTE red_value = (pixel & red_mask) >> 11;
+* BYTE green_value = (pixel & green_mask) >> 5;
+* BYTE blue_value = (pixel & blue_mask);
