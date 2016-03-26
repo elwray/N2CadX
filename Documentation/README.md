@@ -21,13 +21,19 @@
 - [ ] Отсечение невидимых пикселей
 - [ ] Очистка буфера
 - [ ] Рисование шкалы здоровья
+- [ ] Осветление объекта
+- [ ] Затенение объекта
+- [ ] Смешивание и отрисовка двух объектов с разной интенсивностью
 
+
+### Информация
+* Размер тайла ширина - 63, высота - 32.
 
 
 ### Константы
-* WORD red_mask = 0xF800;
-* WORD green_mask = 0x7E0;
-* WORD blue_mask = 0x1F;
+* WORD red_mask = 0xF800; 	//	0b 11111 000000 00000
+* WORD green_mask = 0x7E0;	//	0b 00000 111111 00000
+* WORD blue_mask = 0x1F;	//	0b 00000 000000 11111
 * BYTE red_value = (pixel & red_mask) >> 11;
 * BYTE green_value = (pixel & green_mask) >> 5;
 * BYTE blue_value = (pixel & blue_mask);
