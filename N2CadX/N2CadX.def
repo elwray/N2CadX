@@ -1,0 +1,3 @@
+LIBRARY N2CadX
+EXPORTS
+	CADraw_Init	@1
