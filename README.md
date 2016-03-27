@@ -33,8 +33,8 @@ Documentation - project documentation. All project data will structured and plac
 ## Feedback
 
 If you have any ideas or want to help me with development, please contact me:
-mail: elwray.ru@gmail.com
-skype: dimaermakov
+* mail: elwray.ru@gmail.com
+* skype: dimaermakov
 
 ![Russian]
 (https://www.countries-ofthe-world.com/flags/flag-of-Russia.png)
@@ -69,5 +69,5 @@ N2CadX - проект, на данный момент, основной цель
 ## Обратная связь
 
 Если у Вас есть какие-либо идеи, либо хотит оказать помощь в разработке свяжитесь со мной:
-- почта: elwray.ru@gmail.com
-- skype: dimaermakov
+* почта: elwray.ru@gmail.com
+* skype: dimaermakov
