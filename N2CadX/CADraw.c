@@ -9,6 +9,9 @@ static SCADrawResult g_result = { 0, };
 #pragma region CADraw_Init
 SCADrawResult* CADraw_Init()
 {
+	//g_pFnSub_10003090_1 = (int)sub_10003090;
+	//g_pFnSub_10003090_2 = (int)sub_10003090;
+
 	Initialize();
 
 	g_result.p_buffer1 = g_result.a_buffer1;
@@ -17,12 +20,8 @@ SCADrawResult* CADraw_Init()
 
 	g_result.p_fnInitialize = (INT (*)()) &Initialize;
 	g_result.p_fnInitializeDirectDraw = (INT (*)(HWND, BOOL)) &InitializeDirectDraw;
-
-	//g_pFnSub_10003090_1 = (int)sub_10003090;
-	//g_pFnSub_10003090_2 = (int)sub_10003090;
-	//
-	//g_pFnShutdownDirectDraw = (int)ShutdownDirectDraw;
-	//g_pFnSetDisplayMode = (int)SetDisplayMode;
+	g_result.p_fnShutdownDirectDrawFullscreen = (IDirectDraw (*)()) &ShutdownDirectDrawFullscreen;
+	g_result.p_fnSetDisplayMode = (INT (*)(INT, INT)) &SetDisplayMode;
 	//g_pFnSetPixelFormatMask = (int)SetPixelFormatMasks;
 	//g_pFnReleaseSurface = (int)ReleaseSurface;
 	//g_pFnLockSurface = (int)LockSurface;
@@ -75,7 +74,7 @@ SCADrawResult* CADraw_Init()
 	//g_pFnSub_100088E9 = (int)x_sub_100088E9_DrawStruct;
 	//g_pFnSub_10009F13 = (int)x_sub_10009F13_DrawStruct;
 	//g_pFnSub_100098D3 = (int)x_sub_100098D3_DrawStruct;
-	//g_pFnReleaseDirectDraw = (int)ReleaseDirectDraw;
+	g_result.p_fnShutdownDirectDraw = (IDirectDraw (*)()) &ShutdownDirectDraw;
 
 	return &g_result;
 }
@@ -128,6 +127,19 @@ IDirectDrawSurface* ShutdownDirectDrawSurface()
 	return NULL;
 }
 
+IDirectDraw* ShutdownDirectDraw()
+{
+	ShutdownDirectDrawSurface();
+
+	if (g_result.p_ddraw)
+	{
+		IDirectDraw_Release(g_result.p_ddraw);
+		g_result.p_ddraw = NULL;
+	}
+
+	return NULL;
+}
+
 IDirectDraw* ShutdownDirectDrawFullscreen()
 {
 	ShutdownDirectDrawSurface();
@@ -137,19 +149,6 @@ IDirectDraw* ShutdownDirectDrawFullscreen()
 		if (g_result.fullscreen)
 			IDirectDraw_RestoreDisplayMode(g_result.p_ddraw);
 
-		IDirectDraw_Release(g_result.p_ddraw);
-		g_result.p_ddraw = NULL;
-	}
-
-	return NULL;
-}
-
-IDirectDraw* ShutdownDirectDraw()
-{
-	ShutdownDirectDrawSurface();
-
-	if (g_result.p_ddraw)
-	{
 		IDirectDraw_Release(g_result.p_ddraw);
 		g_result.p_ddraw = NULL;
 	}
@@ -194,11 +193,41 @@ INT SetDisplayMode(INT width, INT height)
 
 	return TRUE;
 }
+
+INT DrawPointToBuffer1(INT x, INT y, WORD color)
+{
+	if (x < g_result.screen.left || x > g_result.screen.right)
+		return 0;
+
+	if (y < g_result.screen.top || y > g_result.screen.bottom)
+		return 0;
+
+	INT pos = x + ScreenWidth * y;
+
+	g_result.a_buffer1[pos] = color;
+
+	return pos;
+}
+
+INT DrawPointToBuffer2(INT x, INT y, WORD color)
+{
+	if (x < g_result.screen.left || x > g_result.screen.right)
+		return 0;
+
+	if (y < g_result.screen.top || y > g_result.screen.bottom)
+		return 0;
+
+	INT pos = x + ScreenWidth * y;
+
+	g_result.a_buffer2[pos] = color;
+
+	return pos;
+}
 #pragma endregion
 
 
 #pragma region Functions (generated, done)
-int sub_10002030(int x, int y, int iWidth, WORD color, int a5)
+INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 {
 	int _dWidth; // edi@1
 	int v6; // ecx@1
@@ -494,122 +523,69 @@ int sub_10002030(int x, int y, int iWidth, WORD color, int a5)
 	}
 	return result;
 }
-#pragma endregion
 
-
-#pragma region Functions (in progress)
-#pragma endregion
-
-
-#pragma region Functions (todo)
-__int32 __cdecl DrawHorizontalLineToPrimaryBuffer(int x, int y, int iSize, WORD wColor)
+INT DrawImageToPrimaryBuffer(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
+	CHAR* pDestAddress)
 {
-	__int32 result; // eax@1
-	int v5; // edx@1
-	LONG iLength; // ecx@1
-	__int16 *pBuffer1; // edi@8
-	unsigned __int32 iCount; // ecx@10
-	int iValueToSet; // edx@10
-	unsigned __int8 iInvertedCount; // cf@10
-	char *pDest; // edi@10
-	int i; // ecx@10
+	char *pSrc; // esi@1
+	char *pDest; // edi@1
+	int result; // eax@1
+	int v11; // ebx@1
+	int v12; // edx@1
+	int v13; // edx@3
+	int i; // ecx@4
+	int j; // ecx@10
+	unsigned int v16; // [sp-10h] [bp-1Ch]@3
+	int iDestWidtha; // [sp+2Ch] [bp+20h]@1
 
-	result = x;
-	HIWORD(v5) = HIWORD(y);
-	iLength = iSize + x - 1;
-	if (y >= g_result.screen.top && y <= g_result.screen.bottom)
+	pSrc = (char *) &g_result.a_buffer1[640 * iSrcY] + 2 * iSrcX + g_result.offset;
+	pDest = &pDestAddress[2 * (iDestX + iDestY * iDestWidth)];
+	result = a3;
+	v11 = -2 * a3;
+	iDestWidtha = 2 * (iDestWidth - a3);
+	v12 = a4;
+	if (iSrcY >= g_result.surfaceHeight)
 	{
-		if (x < g_result.screen.left)
-			result = g_result.screen.left;
-		if (iLength > g_result.screen.right)
-			iLength = g_result.screen.right;
-		if (result <= iLength)
+	LABEL_9:
+		pSrc -= 614400;
+		goto LABEL_10;
+	}
+	if (a4 + iSrcY > g_result.surfaceHeight)
+	{
+		v16 = a4 + iSrcY - g_result.surfaceHeight;
+		v13 = a4 - v16;
+		do
 		{
-			pBuffer1 = &g_aBufferPrimary16[640 * y + result + (g_result.offset >> 1)];
-			if (y >= g_result.surfaceHeight)
-				pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
-			LOWORD(v5) = wColor;
-			iCount = iLength - result + 1;
-			iValueToSet = v5 << 16;
-			LOWORD(iValueToSet) = wColor;
-			result = iValueToSet;
-			iInvertedCount = iCount & 1;
-			iCount >>= 1;
-			memset32(pBuffer1, iValueToSet, iCount);
-			pDest = (char *)&pBuffer1[2 * iCount];
-			for (i = iInvertedCount; i; --i)
+			for (i = a3; i; --i)
 			{
-				*(WORD*)pDest = wColor;
+				*(WORD*) pDest = *(WORD*) pSrc;
+				pSrc += 2;
 				pDest += 2;
 			}
-		}
+			pSrc += v11 + 1280;
+			pDest += iDestWidtha;
+			--v13;
+		} while (v13);
+		v12 = v16;
+		goto LABEL_9;
 	}
-	return result;
-}
-
-//----- (100014C0) --------------------------------------------------------
-LONG __cdecl DrawVerticalLineToPrimaryBuffer(INT x, INT y, int iSize, __int16 a4)
-{
-	int iTempY; // edx@1
-	LONG result; // eax@1
-	__int16 *pBuffer; // ecx@8
-	LONG v7; // edx@9
-	LONG v8; // eax@10
-
-	iTempY = y;
-	result = iSize + y - 1;
-	if (x >= g_result.screen.left && x <= g_result.screen.right)
+	do
 	{
-		if (y < g_result.screen.top)
-			iTempY = g_result.screen.top;
-		if (result > g_result.screen.bottom)
-			result = g_result.screen.bottom;
-		result += 1 - iTempY;
-		if (result > 0)
+	LABEL_10:
+		for (j = a3; j; --j)
 		{
-			pBuffer = &g_aBufferPrimary16[640 * iTempY + x + (g_result.offset >> 1)];
-			if (iTempY < g_result.surfaceHeight)
-			{
-				v7 = result - g_result.surfaceHeight + iTempY;
-				if (v7 <= 0)
-					goto LABEL_14;
-				v8 = result - v7;
-				do
-				{
-					*pBuffer = a4;
-					--v8;
-					pBuffer += 640;
-				} while (v8);
-				result = v7;
-			}
-			pBuffer -= 307200;                        // v6 -= 640 * 480
-			do
-			{
-			LABEL_14:
-				*pBuffer = a4;
-				--result;
-				pBuffer += 640;
-			} while (result);
-			return result;
+			*(WORD*) pDest = *(WORD*) pSrc;
+			pSrc += 2;
+			pDest += 2;
 		}
-	}
+		pSrc += v11 + 1280;
+		pDest += iDestWidtha;
+		--v12;
+	} while (v12);
 	return result;
 }
 
-//----- (10001580) --------------------------------------------------------
-LONG __cdecl DrawRectToPrimaryBuffer(__int32 x, __int32 y, int iWidth, int iHeight, __int16 a5)
-{
-	int v6; // [sp+0h] [bp-18h]@0
-	WORD v7; // [sp+4h] [bp-14h]@0
-
-	DrawHorizontalLineToPrimaryBuffer(x, y, v6, v7);
-	DrawHorizontalLineToPrimaryBuffer(x, y + iHeight - 1, iWidth, a5);
-	DrawVerticalLineToPrimaryBuffer(x, y, iHeight, a5);
-	return DrawVerticalLineToPrimaryBuffer(x + iWidth - 1, y, iHeight, a5);
-}
-
-//----- (100015E0) --------------------------------------------------------
-LONG __cdecl DrawFilledRectToPrimaryBuffer(int x, int y, int iWidth, int iHeight, LONG iColor)
+INT DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
 {
 	LONG _x; // edx@1
 	LONG _y; // ecx@3
@@ -654,11 +630,11 @@ LONG __cdecl DrawFilledRectToPrimaryBuffer(int x, int y, int iWidth, int iHeight
 	if (_iWidth > 0 && _iHeight > 0)
 	{
 		__iHeight = iHeight;
-		pcBuffer = (char *)&g_aBufferPrimary16[640 * y] + 2 * x + g_result.offset;
+		pcBuffer = (char *) &g_result.a_buffer1[640 * y] + 2 * x + g_result.offset;
 		result = iColor;
-		if (y < (unsigned int)g_result.surfaceHeight)
+		if (y < (unsigned int) g_result.surfaceHeight)
 		{
-			if (iHeight + y <= (unsigned int)g_result.surfaceHeight)
+			if (iHeight + y <= (unsigned int) g_result.surfaceHeight)
 				goto LABEL_19;
 			v12 = iHeight - (iHeight + y - g_result.surfaceHeight);
 			v15 = iHeight + y - g_result.surfaceHeight;
@@ -696,308 +672,7 @@ LONG __cdecl DrawFilledRectToPrimaryBuffer(int x, int y, int iWidth, int iHeight
 	return result;
 }
 
-// TODO: previous signature is "__int32 __usercall x_sub_100016D0_DrawStruct(unsigned int a1, int a2)".
-__int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
-{
-	LONG v2; // ecx@1
-	__int32 result; // eax@1
-	LONG v4; // edx@2
-	LONG v5; // edx@3
-	LONG v6; // esi@4
-	unsigned int v7; // ecx@9
-	int v8; // edx@9
-	char *pPrimaryBuffer; // esi@9
-	unsigned int v10; // eax@9
-	int v11; // edi@9
-	int v12; // ebp@9
-	unsigned int v13; // ecx@10
-	bool v14; // cf@10
-	int v15; // ecx@10
-	int v16; // edx@11
-	int v17; // ecx@11
-	int v18; // ecx@17
-	int v19; // [sp-10h] [bp-1Ch]@11
-
-	v2 = *(DWORD*)(a2 + 8);
-	result = g_result.screen.left;
-	if (v2 >= g_result.screen.left
-		|| (v4 = v2 - g_result.screen.left + *(DWORD*)(a2 + 16),
-			v2 = g_result.screen.left,
-			*(DWORD*)(a2 + 16) = v4,
-			*(DWORD*)(a2 + 8) = result,
-			v4 > 0))
-	{
-		v5 = *(DWORD*)(a2 + 12);
-		result = g_result.screen.top;
-		if (v5 >= g_result.screen.top
-			|| (v6 = v5 - g_result.screen.top + *(DWORD*)(a2 + 20),
-				v5 = g_result.screen.top,
-				*(DWORD*)(a2 + 20) = v6,
-				*(DWORD*)(a2 + 12) = result,
-				v6 > 0))
-		{
-			if (v2 + *(_DWORD *)(a2 + 16) - 1 <= g_result.screen.right
-				|| (result = g_result.screen.right - v2 + 1, *(_DWORD *)(a2 + 16) = result, result > 0))
-			{
-				if (v5 + *(_DWORD *)(a2 + 20) - 1 <= g_result.screen.bottom
-					|| (result = g_result.screen.bottom - v5 + 1, *(_DWORD *)(a2 + 20) = result, result > 0))
-				{
-					v7 = *(_DWORD *)(a2 + 12);
-					v8 = *(_DWORD *)(a2 + 20);
-					pPrimaryBuffer = (char *)&g_aBufferPrimary16[640 * *(_DWORD *)(a2 + 12)]
-						+ 2 * *(_DWORD *)(a2 + 8)
-						+ g_result.offset;
-					v10 = *(DWORD*)(a2 + 24);
-					v11 = -*(DWORD*)(a2 + 16);
-					v12 = dword_1000E468;
-					result = (dword_1000E468 & v10) >> 1;
-					if (v7 < g_result.surfaceHeight)
-					{
-						v13 = v8 + v7;
-						v14 = v13 < g_result.surfaceHeight;
-						v15 = v13 - g_result.surfaceHeight;
-						if (v14 || v15 == 0)
-							goto LABEL_17;
-						v16 = v8 - v15;
-						v19 = v15;
-						v17 = 0;
-						do
-						{
-							v17 -= v11;
-							do
-							{
-								LOWORD(a1) = *(_WORD *)pPrimaryBuffer;
-								a1 = result + ((v12 & a1) >> 1);
-								*(_WORD *)pPrimaryBuffer = a1;
-								pPrimaryBuffer += 2;
-								--v17;
-							} while (v17);
-							pPrimaryBuffer += 2 * v11 + 1280;
-							--v16;
-						} while (v16);
-						v8 = v19;
-					}
-					pPrimaryBuffer -= 614400;
-				LABEL_17:
-					v18 = 0;
-					do
-					{
-						v18 -= v11;
-						do
-						{
-							LOWORD(a1) = *(_WORD *)pPrimaryBuffer;
-							a1 = result + ((v12 & a1) >> 1);
-							*(_WORD *)pPrimaryBuffer = a1;
-							pPrimaryBuffer += 2;
-							--v18;
-						} while (v18);
-						pPrimaryBuffer += 2 * v11 + 1280;
-						--v8;
-					} while (v8);
-					return result;
-				}
-			}
-		}
-	}
-	return result;
-}
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E468: using guessed type int dword_1000E468;
-
-//----- (100017F0) --------------------------------------------------------
-LONG __cdecl DrawPointToPrimaryBuffer(int x, int y, __int16 sColor)
-{
-	LONG result; // eax@1
-
-	result = g_result.screen.left;
-	if (x >= g_result.screen.left)
-	{
-		result = g_result.screen.top;
-		if (y >= g_result.screen.top && x <= g_result.screen.right && y <= g_result.screen.bottom)
-		{
-			result = (g_result.offset >> 1) + x + 640 * y;
-			if (y >= g_result.surfaceHeight)             // if (y >= 480)
-				result -= 307200;                       //   result -= 640 * 480
-			g_aBufferPrimary16[result] = sColor;
-		}
-	}
-	return result;
-}
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-
-//----- (10001850) --------------------------------------------------------
-LONG __cdecl DrawPointSecondaryBuffer(LONG x, LONG y, __int16 sColor)
-{
-	LONG result; // eax@1
-
-	result = g_result.screen.left;
-	if (x >= g_result.screen.left)
-	{
-		result = g_result.screen.top;
-		if (y >= g_result.screen.top && x <= g_result.screen.right && y <= g_result.screen.bottom)
-		{
-			result = (g_result.offset >> 1) + x + 640 * y;
-			if (y >= g_result.surfaceHeight)             // if (y >= 480)
-				result -= 307200;                       //   result -= 640 * 480;
-			g_aBufferSecondary16[result] = sColor;
-		}
-	}
-	return result;
-}
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-
-//----- (100018B0) --------------------------------------------------------
-int __cdecl DrawImageToPrimaryBuffer(int iSrcX, unsigned int iSrcY, int a3, int a4, int iDestX, int iDestY, int iDestWidth, char *pDestAddress)
-{
-	char *pSrc; // esi@1
-	char *pDest; // edi@1
-	int result; // eax@1
-	int v11; // ebx@1
-	int v12; // edx@1
-	int v13; // edx@3
-	int i; // ecx@4
-	int j; // ecx@10
-	unsigned int v16; // [sp-10h] [bp-1Ch]@3
-	int iDestWidtha; // [sp+2Ch] [bp+20h]@1
-
-	pSrc = (char *)&g_aBufferPrimary16[640 * iSrcY] + 2 * iSrcX + g_result.offset;
-	pDest = &pDestAddress[2 * (iDestX + iDestY * iDestWidth)];
-	result = a3;
-	v11 = -2 * a3;
-	iDestWidtha = 2 * (iDestWidth - a3);
-	v12 = a4;
-	if (iSrcY >= g_result.surfaceHeight)
-	{
-	LABEL_9:
-		pSrc -= 614400;
-		goto LABEL_10;
-	}
-	if (a4 + iSrcY > g_result.surfaceHeight)
-	{
-		v16 = a4 + iSrcY - g_result.surfaceHeight;
-		v13 = a4 - v16;
-		do
-		{
-			for (i = a3; i; --i)
-			{
-				*(_WORD *)pDest = *(_WORD *)pSrc;
-				pSrc += 2;
-				pDest += 2;
-			}
-			pSrc += v11 + 1280;
-			pDest += iDestWidtha;
-			--v13;
-		} while (v13);
-		v12 = v16;
-		goto LABEL_9;
-	}
-	do
-	{
-	LABEL_10:
-		for (j = a3; j; --j)
-		{
-			*(_WORD *)pDest = *(_WORD *)pSrc;
-			pSrc += 2;
-			pDest += 2;
-		}
-		pSrc += v11 + 1280;
-		pDest += iDestWidtha;
-		--v12;
-	} while (v12);
-	return result;
-}
-
-//----- (10001BF0) --------------------------------------------------------
-// WORD red_mask = 0xF800;
-// WORD green_mask = 0x7E0;
-// WORD blue_mask = 0x1F;
-// 
-// BYTE red_value = (pixel & red_mask) >> 11;
-// BYTE green_value = (pixel & green_mask) >> 5;
-// BYTE blue_value = (pixel & blue_mask);
-int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
-{
-	int result; // eax@1
-	WORD *_pwDest; // esi@2
-	WORD *_pwSrc; // edi@2
-	int iItemsLeft; // ebx@2
-
-	result = iCount;
-	if (iCount > 0)
-	{
-		_pwDest = pwDest;
-		_pwSrc = pwSrc;
-		iItemsLeft = iCount;
-		do
-		{
-			if (*_pwSrc == 63519)                   // 0b1111100000011111
-			{
-				*_pwDest = 63519;                       // 0b1111100000011111
-			}
-			else
-			{
-				result = g_result.blueMask & ((*_pwSrc & 0x1F) << 11 >> m_wBBitFromLeftOffset);// iBBitMask
-				*_pwDest = g_result.redMask & ((unsigned __int16)(*_pwSrc & 0xF800) >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (*_pwSrc & 0x7E0) >> m_wGBitFromLeftOffset);
-			}
-			++_pwSrc;
-			++_pwDest;
-			--iItemsLeft;
-		} while (iItemsLeft);
-	}
-	return result;
-}
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
-// 1000E458: using guessed type __int16 m_wRBitFromLeftOffset;
-// 1000E45A: using guessed type __int16 m_wGBitFromLeftOffset;
-// 1000E45C: using guessed type __int16 m_wBBitFromLeftOffset;
-
-//----- (10001C80) --------------------------------------------------------
-// WORD red_mask = 0xF800;
-// WORD green_mask = 0x7E0;
-// WORD blue_mask = 0x1F;
-// 
-// BYTE red_value = (pixel & red_mask) >> 11;
-// BYTE green_value = (pixel & green_mask) >> 5;
-// BYTE blue_value = (pixel & blue_mask);
-INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
-{
-	int iItemsLeft; // ebx@1
-	char *_pSrc; // esi@2
-	char *_pDest; // edi@2
-	__int16 uCurrentColor; // ax@3
-	WORD uCurrentColorRed; // dx@3
-	__int16 _wCurrentColor; // bp@3
-	int result; // eax@3
-
-	iItemsLeft = iCount;
-	if (iCount > 0)
-	{
-		_pSrc = pSrc;
-		_pDest = pDest;
-		do
-		{
-			uCurrentColor = *(WORD*) _pSrc;
-			uCurrentColorRed = *(WORD*) _pSrc & 0xF800;
-			_pSrc += 4;
-			_wCurrentColor = uCurrentColor;
-			_pDest += 4;
-			result = g_result.blueMask & ((uCurrentColor & 0x1F) << 11 >> m_wBBitFromLeftOffset);
-			--iItemsLeft;
-			*((WORD*) _pDest - 2) = g_result.redMask & (uCurrentColorRed >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (_wCurrentColor & 0x7E0) >> m_wGBitFromLeftOffset);
-		} while (iItemsLeft);
-	}
-	return result;
-}
-
-unsigned int __cdecl x_sub_10001D00(int x, int y)
+INT x_sub_10001D00(INT x, INT y)
 {
 	int _y; // ebp@1
 	signed int _uBufferPosition; // ecx@1
@@ -1031,23 +706,23 @@ LABEL_7:
 	{
 		if (v4 < 640)
 			goto LABEL_12;
-		qmemcpy(g_pBufferSecondary, g_pBufferSecondary + 614400, 1280u);
-		qmemcpy(g_pBufferPrimary, g_pBufferPrimary + 614400, 1280u);
-		pDest_v6 = g_pBufferThird;
-		pSrc_v5 = g_pBufferThird + 614400;
+		qmemcpy(g_result.p_buffer2, g_result.p_buffer2 + 614400, 1280u);
+		qmemcpy(g_result.p_buffer1, g_result.p_buffer1 + 614400, 1280u);
+		pDest_v6 = g_result.p_buffer3;
+		pSrc_v5 = g_result.p_buffer3 + 614400;
 	}
 	else
 	{
-		qmemcpy(g_pBufferSecondary + 614400, g_pBufferSecondary, 1280u);// pDest, pSrc, 1280
-		qmemcpy(g_pBufferPrimary + 614400, g_pBufferPrimary, 1280u);
-		pSrc_v5 = g_pBufferThird;
-		pDest_v6 = g_pBufferThird + 614400;
+		qmemcpy(g_result.p_buffer2 + 614400, g_result.p_buffer2, 1280u);// pDest, pSrc, 1280
+		qmemcpy(g_result.p_buffer1 + 614400, g_result.p_buffer1, 1280u);
+		pSrc_v5 = g_result.p_buffer3;
+		pDest_v6 = g_result.p_buffer3 + 614400;
 	}
 	qmemcpy(pDest_v6, pSrc_v5, 1280u);
 	_uBufferPosition = uBufferPosition;
 LABEL_12:
 	g_result.offset = _uBufferPosition;
-	result = (unsigned int)((unsigned __int64)(1717986919i64 * (_uBufferPosition / 2)) >> 32) >> 31;//  result = pTempData8 / 2 / 1024;
+	result = (unsigned int) ((unsigned __int64) (1717986919i64 * (_uBufferPosition / 2)) >> 32) >> 31;//  result = pTempData8 / 2 / 1024;
 	g_result.surfaceHeight = 480 - _uBufferPosition / 2 / 640;
 	if (_y <= 0)
 	{
@@ -1069,40 +744,31 @@ LABEL_12:
 	}
 	return result;
 }
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
-//----- (10001EA0) --------------------------------------------------------
-int __cdecl x_sub_10001EA0_call(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
-	return h_________________sub_100034F0(a3, a4, a5, a6, a1, a2, 2 * g_dwWidth, a7, (unsigned int)g_aBufferSecondary16);
+	return h_________________sub_100034F0(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer2);
 }
-// 1000E430: using guessed type int g_dwWidth;
 
-//----- (10001EE0) --------------------------------------------------------
-int __cdecl x_sub_10001EE0_call(int a1, int a2, int a3, int a4, int a5, int a6)
+INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
 {
-	return sub_100038EE(a3, a4, a5, a6, a1, a2, 2 * g_dwWidth, (unsigned int)g_aBufferPrimary16);
+	return sub_100038EE(a3, a4, a5, a6, a1, a2, 2 * g_result.width, g_result.a_buffer1);
 }
-// 1000E430: using guessed type int g_dwWidth;
 
-//----- (10001F20) --------------------------------------------------------
-int __cdecl x_sub_10001F20_call(int a1, int a2, int a3)
+INT x_sub_10001F20_call(INT a1, INT a2, INT a3)
 {
-	return sub_100040E6(a1, a2, 2 * g_dwWidth, a3, (unsigned int)g_aBufferPrimary16);
+	return sub_100040E6(a1, a2, 2 * g_result.width, a3, (unsigned int) g_result.a_buffer1);
 }
-// 1000E430: using guessed type int g_dwWidth;
 
-//----- (10001F50) --------------------------------------------------------
-int __cdecl x_sub_10001F50_call(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
-	return sub_10003D18(a3, a4, a5, a6, a1, a2, 2 * g_dwWidth, a7, (unsigned int)g_aBufferPrimary16);
+	return sub_10003D18(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer1);
 }
-// 1000E430: using guessed type int g_dwWidth;
+// 1000E430: using guessed type int g_result.width;
 
 //----- (10001F90) --------------------------------------------------------
 // Copy from primary buffer to secondary
-unsigned int __cdecl CopyRectFromPrimaryBufferToSecondaryBuffer(int x, unsigned int y, unsigned int iWidth, int iHeight)
+INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
 {
 	unsigned int v4; // eax@1
 	double *pSrc; // esi@1
@@ -1116,8 +782,8 @@ unsigned int __cdecl CopyRectFromPrimaryBufferToSecondaryBuffer(int x, unsigned 
 	unsigned int v13; // [sp-10h] [bp-1Ch]@3
 
 	v4 = x + 640 * y;
-	pSrc = (double *)((char *)&g_aBufferSecondary16[v4] + g_result.offset);
-	pDest = (double *)((char *)&g_aBufferPrimary16[v4] + g_result.offset);
+	pSrc = (double *) ((char *) &g_result.a_buffer2[v4] + g_result.offset);
+	pDest = (double *) ((char *) &g_result.a_buffer1[v4] + g_result.offset);
 	_iHeight = iHeight;
 	result = iWidth >> 2;
 	v9 = 2 * (640 - iWidth);
@@ -1142,8 +808,8 @@ unsigned int __cdecl CopyRectFromPrimaryBufferToSecondaryBuffer(int x, unsigned 
 				++pDest;
 				--v11;
 			} while (v11);
-			pSrc = (double *)((char *)pSrc + v9);
-			pDest = (double *)((char *)pDest + v9);
+			pSrc = (double *) ((char *) pSrc + v9);
+			pDest = (double *) ((char *) pDest + v9);
 			--v10;
 		} while (v10);
 		_iHeight = v13;
@@ -1160,234 +826,62 @@ unsigned int __cdecl CopyRectFromPrimaryBufferToSecondaryBuffer(int x, unsigned 
 			++pDest;
 			--iDoublesCopied;
 		} while (iDoublesCopied);
-		pSrc = (double *)((char *)pSrc + v9);
-		pDest = (double *)((char *)pDest + v9);
+		pSrc = (double *) ((char *) pSrc + v9);
+		pDest = (double *) ((char *) pDest + v9);
 		--_iHeight;
 	} while (_iHeight);
 	return result;
 }
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
-//----- (10002030) --------------------------------------------------------
-
-
-//----- (100024C0) --------------------------------------------------------
-int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
+INT DrawVerticalLineToBuffer1(INT x, INT y, int iSize, __int16 a4)
 {
-	unsigned __int64 v5; // rax@2
-	int v6; // eax@9
-	int v7; // eax@19
-	int v8; // esi@21
-	int v9; // eax@23
-	char *pPrimaryBuffer; // edi@25
-	int v11; // ecx@28
-	int v12; // ecx@33
-	char *v13; // edi@35
-	int v14; // ecx@35
-	int v15; // ecx@40
-	int v16; // ecx@50
-	int v18; // [sp-18h] [bp-28h]@33
-	int v19; // [sp-14h] [bp-24h]@33
-	char *v20; // [sp-10h] [bp-20h]@26
-	char *v21; // [sp-10h] [bp-20h]@33
-	char *pData; // [sp+Ch] [bp-4h]@1
-	int v23; // [sp+18h] [bp+8h]@1
-	int v24; // [sp+1Ch] [bp+Ch]@1
-	int v25; // [sp+20h] [bp+10h]@12
+	int iTempY; // edx@1
+	LONG result; // eax@1
+	__int16 *pBuffer; // ecx@8
+	LONG v7; // edx@9
+	LONG v8; // eax@10
 
-	pData = (char *)&unk_100AEEA8 + 2 * (g_result.offset / 2 % 640);
-	dword_10018E94 = g_result.screen.right - g_result.screen.left;
-	v23 = a1 - g_result.screen.left;
-	dword_10018E90 = g_result.screen.bottom + 1 - g_result.screen.top;
-	v24 = a2 - g_result.screen.top;
-	dword_10018E80 = 0;
-	if (v24 < 0)
+	iTempY = y;
+	result = iSize + y - 1;
+	if (x >= g_result.screen.left && x <= g_result.screen.right)
 	{
-		LODWORD(v5) = v24;
-		a4 += v24;
-		if (a4 <= 0)
-			return v5;
-		v24 = 0;
-		dword_10018E80 |= 1u;
-	}
-	if (v24 >= dword_10018E90)
-	{
-		LODWORD(v5) = v24;
-		a4 = v24 + a4 - (dword_10018E90 - 1);
-		if (a4 >= 0)
-			return v5;
-		v24 = dword_10018E90 - 1;
-		dword_10018E80 |= 1u;
-	}
-	if ((a4 + v24 + 1 < 0) ^ __OFADD__(a4, v24 + 1))
-	{
-		a4 -= a4 + v24 + 1 + 1;
-		dword_10018E80 |= 2u;
-	}
-	v6 = a4 + v24 - 1;
-	if (v6 >= dword_10018E90)
-	{
-		a4 += dword_10018E90 - v6;
-		dword_10018E80 |= 2u;
-	}
-	if (v23 < 1)
-	{
-		LODWORD(v5) = v23;
-		v25 = v23 + a3;
-		if (v25 <= 1)
-			return v5;
-		v23 = 1;
-		a3 = v25 - 1;
-		dword_10018E80 |= 4u;
-	}
-	if (v23 >= dword_10018E94 + 2)
-	{
-		LODWORD(v5) = v23 + 1;
-		a3 = v23 + 1 + a3 - (dword_10018E94 + 2);
-		if (a3 >= 0)
-			return v5;
-		v23 = dword_10018E94 + 1;
-		dword_10018E80 |= 4u;
-	}
-	if ((a3 + v23 < 0) ^ __OFADD__(a3, v23))
-	{
-		a3 = -v23;
-		dword_10018E80 |= 8u;
-	}
-	v7 = a3 + v23 - 2;
-	if (v7 > dword_10018E94)
-	{
-		a3 += dword_10018E94 - v7;
-		dword_10018E80 |= 8u;
-	}
-	v8 = 2 * v24;
-	dword_10018E84 = 2;
-	if (a3 < 0)
-	{
-		dword_10018E84 = -dword_10018E84;
-		a3 = -a3;
-	}
-	dword_10018E8C = 1;
-	v9 = g_dwWidthInBytes;
-	if (a4 < 0)
-	{
-		v9 = -g_dwWidthInBytes;
-		a4 = -a4;
-		v8 = -2 * v24;
-		dword_10018E8C = -dword_10018E8C;
-	}
-	dword_10018E88 = v9;
-	v5 = (unsigned int)g_dwWidthInBytes * (unsigned __int64)(unsigned int)v24;
-	pPrimaryBuffer = (char *)g_aBufferPrimary16
-		+ g_result.screen.left
-		+ g_result.screen.left
-		+ g_dwWidthInBytes * g_result.screen.top
-		+ v23
-		+ v23
-		+ v5
-		+ g_result.offset;
-	LODWORD(v5) = a5;
-	if (!(dword_10018E80 & 1))
-	{
-		--a4;
-		v20 = pPrimaryBuffer;
-		if (pPrimaryBuffer >= pData)
-			pPrimaryBuffer -= 614400;
-		*(_WORD *)pPrimaryBuffer = a5;
-		v11 = a3 - 1;
-		if (a3 - 1 > 0)
+		if (y < g_result.screen.top)
+			iTempY = g_result.screen.top;
+		if (result > g_result.screen.bottom)
+			result = g_result.screen.bottom;
+		result += 1 - iTempY;
+		if (result > 0)
 		{
+			pBuffer = &g_result.a_buffer1[640 * iTempY + x + (g_result.offset >> 1)];
+			if (iTempY < g_result.surfaceHeight)
+			{
+				v7 = result - g_result.surfaceHeight + iTempY;
+				if (v7 <= 0)
+					goto LABEL_14;
+				v8 = result - v7;
+				do
+				{
+					*pBuffer = a4;
+					--v8;
+					pBuffer += 640;
+				} while (v8);
+				result = v7;
+			}
+			pBuffer -= 307200;                        // v6 -= 640 * 480
 			do
 			{
-				pPrimaryBuffer += dword_10018E84;
-				*(_WORD *)pPrimaryBuffer = a5;
-				--v11;
-			} while (v11);
-			*(_WORD *)pPrimaryBuffer = a5;
-		}
-		pPrimaryBuffer = &v20[dword_10018E88];
-		HIDWORD(v5) += dword_10018E8C;
-		v8 += 2;
-	}
-	if (!(dword_10018E80 & 8))
-	{
-		v21 = pPrimaryBuffer;
-		v19 = v8;
-		v18 = HIDWORD(v5);
-		v12 = 2 * a3 - 2;
-		if (dword_10018E84 < 0)
-			v12 = -v12;
-		v13 = &pPrimaryBuffer[v12];
-		v14 = a4 - 1;
-		if (a4 - 1 > 0)
-		{
-			do
-			{
-				if (v13 >= pData)
-					v13 -= 614400;
-				*(_WORD *)v13 = a5;
-				v13 += dword_10018E88;
-				v8 += 2;
-				HIDWORD(v5) += dword_10018E8C;
-				--v14;
-			} while (v14);
-		}
-		HIDWORD(v5) = v18;
-		v8 = v19;
-		pPrimaryBuffer = v21;
-	}
-	v15 = a4 - 1;
-	if (dword_10018E80 & 4)
-	{
-		pPrimaryBuffer += v15 * dword_10018E88;
-	}
-	else if (v15 > 0)
-	{
-		do
-		{
-			if (pPrimaryBuffer >= pData)
-				pPrimaryBuffer -= 614400;
-			*(_WORD *)pPrimaryBuffer = a5;
-			pPrimaryBuffer += dword_10018E88;
-			v8 += 2;
-			HIDWORD(v5) += dword_10018E8C;
-			--v15;
-		} while (v15);
-	}
-	if ((unsigned int)a4 >= 1 && !(dword_10018E80 & 2))
-	{
-		if (pPrimaryBuffer >= pData)
-			pPrimaryBuffer -= 614400;
-		*(_WORD *)pPrimaryBuffer = a5;
-		v16 = a3 - 1;
-		if (a3 - 1 > 0)
-		{
-			do
-			{
-				pPrimaryBuffer += dword_10018E84;
-				*(_WORD *)pPrimaryBuffer = a5;
-				--v16;
-			} while (v16);
-			*(_WORD *)pPrimaryBuffer = a5;
+			LABEL_14:
+				*pBuffer = a4;
+				--result;
+				pBuffer += 640;
+			} while (result);
+			return result;
 		}
 	}
-	return v5;
+	return result;
 }
-// 100024C0: using guessed type int __cdecl x_sub_100024C0(int, int, int, int, int);
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E438: using guessed type int g_dwWidthInBytes;
-// 10018E7C: using guessed type int g_pFnReleaseDirectDraw;
-// 10018E80: using guessed type int dword_10018E80;
-// 10018E84: using guessed type int dword_10018E84;
-// 10018E88: using guessed type int dword_10018E88;
-// 10018E8C: using guessed type int dword_10018E8C;
-// 10018E90: using guessed type int dword_10018E90;
-// 10018E94: using guessed type int dword_10018E94;
 
-//----- (100027C0) --------------------------------------------------------
-__int32 __cdecl x_sub_100027C0()
+INT x_sub_100027C0()
 {
 	char *pBufferThird; // edi@1
 	LONG iScreenRectHeight; // edx@1
@@ -1401,20 +895,20 @@ __int32 __cdecl x_sub_100027C0()
 	unsigned int v9; // ecx@9
 	LONG v10; // [sp-10h] [bp-1Ch]@3
 
-	pBufferThird = (char *)&g_aBufferThird[640 * g_result.screen.top] + 2 * g_result.screen.left + g_result.offset;
+	pBufferThird = (char *) &g_result.a_buffer3[640 * g_result.screen.top] + 2 * g_result.screen.left + g_result.offset;
 	iScreenRectHeight = g_result.screen.bottom - g_result.screen.top + 1;
 	iScreenRectWidth = g_result.screen.right - g_result.screen.left + 1;
 	i640AndScreenWidthDiffInBytes = 2 * (640 - iScreenRectWidth);
 	iHalfOfScreenRectWidth = iScreenRectWidth >> 1;
 	result = 32 * (g_result.screen.top | (g_result.screen.top << 16));
-	if (g_result.screen.top >= (unsigned int)g_result.surfaceHeight)
+	if (g_result.screen.top >= (unsigned int) g_result.surfaceHeight)
 	{
 	LABEL_8:
 		pBufferThird -= 614400;
 		goto LABEL_9;
 	}
 	v6 = iScreenRectHeight + g_result.screen.top - g_result.surfaceHeight;
-	if (iScreenRectHeight + g_result.screen.top > (unsigned int)g_result.surfaceHeight)
+	if (iScreenRectHeight + g_result.screen.top > (unsigned int) g_result.surfaceHeight)
 	{
 		v7 = iScreenRectHeight - v6;
 		v10 = v6;
@@ -1423,7 +917,7 @@ __int32 __cdecl x_sub_100027C0()
 			v8 = iHalfOfScreenRectWidth;
 			do
 			{
-				*(_DWORD *)pBufferThird = result;
+				*(DWORD*) pBufferThird = result;
 				pBufferThird += 4;
 				--v8;
 			} while (v8);
@@ -1440,7 +934,7 @@ __int32 __cdecl x_sub_100027C0()
 		v9 = iHalfOfScreenRectWidth;
 		do
 		{
-			*(_DWORD *)pBufferThird = result;
+			*(DWORD*) pBufferThird = result;
 			pBufferThird += 4;
 			--v9;
 		} while (v9);
@@ -1450,12 +944,8 @@ __int32 __cdecl x_sub_100027C0()
 	} while (iScreenRectHeight);
 	return result;
 }
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
-//----- (10002860) --------------------------------------------------------
-unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsigned int iWidth, int iHeight)
+INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
 {
 	char *pBuffer; // edi@1
 	unsigned int result; // eax@1
@@ -1466,7 +956,7 @@ unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsi
 	unsigned int v10; // ecx@9
 	unsigned int v11; // [sp-10h] [bp-1Ch]@3
 
-	pBuffer = (char *)&g_aBufferThird[640 * y] + 2 * x + g_result.offset;
+	pBuffer = (char *) &g_result.a_buffer3[640 * y] + 2 * x + g_result.offset;
 	result = 0xFFFBFFFB;
 	v6 = iHeight;
 	v7 = 2 * (640 - iWidth);
@@ -1485,7 +975,7 @@ unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsi
 			v9 = iWidth >> 1;
 			do
 			{
-				*(_DWORD *)pBuffer &= 0xFFFBFFFB;
+				*(DWORD*) pBuffer &= 0xFFFBFFFB;
 				pBuffer += 4;
 				--v9;
 			} while (v9);
@@ -1501,7 +991,7 @@ unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsi
 		v10 = iWidth >> 1;
 		do
 		{
-			*(_DWORD *)pBuffer &= 0xFFFBFFFB;
+			*(DWORD*) pBuffer &= 0xFFFBFFFB;
 			pBuffer += 4;
 			--v10;
 		} while (v10);
@@ -1510,126 +1000,21 @@ unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsi
 	} while (v6);
 	return result;
 }
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
-//----- (100028F0) --------------------------------------------------------
-// 
-//       if ( x <= 0 )
-//         result = sub_100028F0(-x, -_y, x + 640, _y + 480, -_y);
-//       else
-//         result = sub_100028F0(0, -_y, 640 - x, _y + 480, -_y);
-// 
-//     ...
-//     
-//     if ( x <= 0 )
-//       result = sub_100028F0(-x, 0, x + 640, 480 - _y, -_y);
-//     else
-//       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
-// 
-int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 {
-	char *v5; // edi@1
-	int v6; // edx@1
-	unsigned int v7; // esi@1
-	int result; // eax@2
-	unsigned int v9; // edx@4
-	unsigned int v10; // ecx@5
-	unsigned int v11; // ecx@10
-	unsigned int v12; // edx@16
-	unsigned int v13; // ecx@17
-	unsigned int v14; // ecx@22
-	unsigned int v15; // [sp-10h] [bp-1Ch]@4
-	unsigned int v16; // [sp-10h] [bp-1Ch]@16
+	int v6; // [sp+0h] [bp-18h]@0
+	WORD v7; // [sp+4h] [bp-14h]@0
 
-	v5 = (char *)&g_aBufferThird[640 * y] + 2 * x + g_result.offset;
-	v6 = iHeight;
-	v7 = 2 * (640 - iWidth);
-	if (a5 < 0)
-	{
-		result = 0xFFE00000 * a5;
-		LOWORD(result) = -32 * a5;
-		if (y < g_result.surfaceHeight)
-		{
-			if (iHeight + y <= g_result.surfaceHeight)
-			{
-				do
-				{
-				LABEL_10:
-					v11 = iWidth >> 1;
-					do
-					{
-						*(_DWORD *)v5 -= result;
-						v5 += 4;
-						--v11;
-					} while (v11);
-					v5 += v7;
-					--v6;
-				} while (v6);
-				return result;
-			}
-			v9 = iHeight - (iHeight + y - g_result.surfaceHeight);
-			v15 = iHeight + y - g_result.surfaceHeight;
-			do
-			{
-				v10 = iWidth >> 1;
-				do
-				{
-					*(_DWORD *)v5 -= result;
-					v5 += 4;
-					--v10;
-				} while (v10);
-				v5 += v7;
-				--v9;
-			} while (v9);
-			v6 = v15;
-		}
-		v5 -= 614400;
-		goto LABEL_10;
-	}
-	result = a5 << 21;
-	LOWORD(result) = 32 * a5;
-	if (y >= g_result.surfaceHeight)
-		goto LABEL_21;
-	if (iHeight + y > g_result.surfaceHeight)
-	{
-		v12 = iHeight - (iHeight + y - g_result.surfaceHeight);
-		v16 = iHeight + y - g_result.surfaceHeight;
-		do
-		{
-			v13 = iWidth >> 1;
-			do
-			{
-				*(_DWORD *)v5 += result;
-				v5 += 4;
-				--v13;
-			} while (v13);
-			v5 += v7;
-			--v12;
-		} while (v12);
-		v6 = v16;
-	LABEL_21:
-		v5 -= 614400;
-		goto LABEL_22;
-	}
-	do
-	{
-	LABEL_22:
-		v14 = iWidth >> 1;
-		do
-		{
-			*(_DWORD *)v5 += result;
-			v5 += 4;
-			--v14;
-		} while (v14);
-		v5 += v7;
-		--v6;
-	} while (v6);
-	return result;
+	DrawHorizontalLineToPrimaryBuffer(x, y, v6, v7, color);
+	DrawHorizontalLineToPrimaryBuffer(x, y + iHeight - 1, iWidth, color);
+	DrawVerticalLineToPrimaryBuffer(x, y, iHeight, color);
+	return DrawVerticalLineToPrimaryBuffer(x + iWidth - 1, y, iHeight, color);
 }
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
+#pragma endregion
 
+
+#pragma region Functions (in progress)
 //----- (100029D0) --------------------------------------------------------
 BOOL __cdecl LockSurface()
 {
@@ -1649,7 +1034,7 @@ BOOL __cdecl LockSurface()
 	{
 	LBL_LOCKED_SUCCESS:
 		g_lPitch = ddSurfaceDescription.lPitch;
-		g_pSurfaceData = ddSurfaceDescription.lpSurface;
+		g_result.p_surface = ddSurfaceDescription.lpSurface;
 		result = 1;
 	}
 	else
@@ -1679,7 +1064,7 @@ int __cdecl UnlockSurface()
 	int result; // eax@1
 
 	result = (*((int(__stdcall **)(_DWORD, _DWORD))g_lpDDrawSurface->lpVtbl + 32))(g_lpDDrawSurface, 0);// g_lpDDrawSurface->Unlock()
-	g_pSurfaceData = 0;
+	g_result.p_surface = 0;
 	return result;
 }
 
@@ -1693,7 +1078,7 @@ BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDes
 	int iDoublesCopied; // ecx@5
 	BOOL bNeedUnlockSurface; // [sp+Ch] [bp-4h]@3
 
-	if (g_pSurfaceData)
+	if (g_result.p_surface)
 	{
 		bNeedUnlockSurface = 0;
 	}
@@ -1704,7 +1089,7 @@ BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDes
 			return bResult;
 		bNeedUnlockSurface = 1;
 	}
-	pDest = (char *)g_pSurfaceData + iDestX + iDestX + iDestY * g_lPitch;
+	pDest = (char *) g_result.p_surface + iDestX + iDestX + iDestY * g_lPitch;
 	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * a7)];
 	_iSrcHeight = iDestHeight;
 	iDoublesCopied = 0;
@@ -1713,7 +1098,7 @@ BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDes
 		iDoublesCopied += iDestWidth >> 2;
 		do
 		{
-			*(double *)pDest = *(double *)pSrc;
+			*(double *) pDest = *(double *) pSrc;
 			pSrc += 8;
 			pDest += 8;
 			--iDoublesCopied;
@@ -1727,7 +1112,10 @@ BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDes
 		bResult = UnlockSurface();
 	return bResult;
 }
+#pragma endregion
 
+
+#pragma region Functions (todo)
 //----- (10002B10) --------------------------------------------------------
 int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
 {
@@ -1748,7 +1136,7 @@ int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDest
 	{
 		for (v14 += a9; v14; --v14)
 		{
-			*(_WORD *)_pDest = *(_WORD *)_pSrc;
+			*(WORD*)_pDest = *(WORD*)_pSrc;
 			_pSrc += 2;
 			_pDest += 2;
 		}
@@ -1775,7 +1163,7 @@ signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int
 	unsigned int v14; // [sp-10h] [bp-20h]@7
 	BOOL bIsSurfaceMustLocked; // [sp+Ch] [bp-4h]@3
 
-	if (g_pSurfaceData)
+	if (g_result.p_surface)
 	{
 		bIsSurfaceMustLocked = FALSE;
 	}
@@ -1786,8 +1174,8 @@ signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int
 			return result;
 		bIsSurfaceMustLocked = TRUE;
 	}
-	v5 = (char *)&g_aBufferPrimary16[640 * a2] + 2 * a1 + g_result.offset;
-	v6 = (char *)g_pSurfaceData + a1 + a1 + a2 * g_lPitch;
+	v5 = (char *)&g_result.a_buffer1[640 * a2] + 2 * a1 + g_result.offset;
+	v6 = (char *)g_result.p_surface + a1 + a1 + a2 * g_lPitch;
 	v7 = a4;
 	v8 = -2 * a3;
 	if (a2 < g_result.surfaceHeight)
@@ -1907,40 +1295,40 @@ signed int sub_10002C70(int a1)
 	char *v42; // [sp-14h] [bp-28h]@12
 	char *v43; // [sp-10h] [bp-24h]@12
 
-	if (g_pSurfaceData)
+	if (g_result.p_surface)
 	{
-		*(_DWORD *)(a1 - 4) = 0;                    // a1->bNeedUnlockSurface = FALSE;
+		*(DWORD*)(a1 - 4) = 0;                    // a1->bNeedUnlockSurface = FALSE;
 	}
 	else
 	{
 		result = LockSurface();
 		if (!result)
 			return result;
-		*(_DWORD *)(a1 - 4) = 1;                    // a1->bNeedUnlockSurface = TRUE;
+		*(DWORD*)(a1 - 4) = 1;                    // a1->bNeedUnlockSurface = TRUE;
 	}
-	_1_VerticalLength = 1 - *(_DWORD *)(a1 + 12) + *(_DWORD *)(a1 + 20);// _1VerticalLength = 1 - a1->y + a1->iWidth;
-	*(_DWORD *)(a1 + 16) += 1 - *(_DWORD *)(a1 + 8);// a1->iWidth += 1 - a1->x;
-	*(_DWORD *)(a1 + 20) = _1_VerticalLength;     // a1->iWidth = _1VerticalLength;
+	_1_VerticalLength = 1 - *(DWORD*)(a1 + 12) + *(DWORD*)(a1 + 20);// _1VerticalLength = 1 - a1->y + a1->iWidth;
+	*(DWORD*)(a1 + 16) += 1 - *(DWORD*)(a1 + 8);// a1->iWidth += 1 - a1->x;
+	*(DWORD*)(a1 + 20) = _1_VerticalLength;     // a1->iWidth = _1VerticalLength;
 	dword_10018EA4 = 0;
 	dword_1000E410 = dword_1000E470;
 	dword_1000E40C = -8 * g_lPitch + 32;
-	*(_DWORD *)(a1 - 8) = (char *)&unk_1000E70C + 80 * (*(_DWORD *)(a1 + 12) >> 3) + (*(_DWORD *)(a1 + 8) >> 4);
-	pPrimaryBuffer = (char *)&g_aBufferPrimary16[640 * *(_DWORD *)(a1 + 12)] + 2 * *(_DWORD *)(a1 + 8) + g_result.offset;
-	pSurfaceData = (char *)g_pSurfaceData + *(_DWORD *)(a1 + 8) + *(_DWORD *)(a1 + 8) + *(_DWORD *)(a1 + 12) * g_lPitch;// x + x + y * g_lPitch
-	*(_DWORD *)(a1 + 16) >>= 4;
+	*(DWORD*)(a1 - 8) = (char *)&unk_1000E70C + 80 * (*(DWORD*)(a1 + 12) >> 3) + (*(DWORD*)(a1 + 8) >> 4);
+	pPrimaryBuffer = (char *)&g_result.a_buffer1[640 * *(DWORD*)(a1 + 12)] + 2 * *(DWORD*)(a1 + 8) + g_result.offset;
+	pSurfaceData = (char *)g_result.p_surface + *(DWORD*)(a1 + 8) + *(DWORD*)(a1 + 8) + *(DWORD*)(a1 + 12) * g_lPitch;// x + x + y * g_lPitch
+	*(DWORD*)(a1 + 16) >>= 4;
 	dword_1000E408 = -10208;
-	a1_y = *(_DWORD *)(a1 + 12);                  // a1_y = a1->y;
+	a1_y = *(DWORD*)(a1 + 12);                  // a1_y = a1->y;
 	if (a1_y >= g_result.surfaceHeight)
 	{
 		pPrimaryBuffer -= 614400;
 		goto LABEL_10;
 	}
-	_a1_y = *(_DWORD *)(a1 + 12);                 // _a1_y = a1->y;
-	a1_height = *(_DWORD *)(a1 + 20) + a1_y;      // a1_height = a1->iHeight;
+	_a1_y = *(DWORD*)(a1 + 12);                 // _a1_y = a1->y;
+	a1_height = *(DWORD*)(a1 + 20) + a1_y;      // a1_height = a1->iHeight;
 	if (a1_height <= g_result.surfaceHeight)
 	{
 	LABEL_10:
-		dword_101DBDF8 = *(_DWORD *)(a1 + 20) >> 3; // dword_101DBDF8 = a1->iHeight / 8
+		dword_101DBDF8 = *(DWORD*)(a1 + 20) >> 3; // dword_101DBDF8 = a1->iHeight / 8
 		dword_101DBDF4 = 0;
 		dword_10018EA0 = 0;
 		goto LABEL_11;
@@ -1970,15 +1358,15 @@ LABEL_11:
 			LABEL_12:
 				v43 = pPrimaryBuffer;
 				v42 = pSurfaceData;
-				v10 = *(_DWORD *)(a1 - 8);
-				*(_DWORD *)(a1 - 8) += 80;
+				v10 = *(DWORD*)(a1 - 8);
+				*(DWORD*)(a1 - 8) += 80;
 				dword_1000E400 = v10;
-				dword_101DBDFC = *(_DWORD *)(a1 + 16);
+				dword_101DBDFC = *(DWORD*)(a1 + 16);
 				v41 = a1;
 				do
 				{
-					v11 = *(_DWORD *)(dword_1000E400 - 2);
-					LOWORD(v11) = *(_WORD *)(dword_1000E400 + 80);
+					v11 = *(DWORD*)(dword_1000E400 - 2);
+					LOWORD(v11) = *(WORD*)(dword_1000E400 + 80);
 					if (v11)
 					{
 						if (v11 == 0x80808080)
@@ -2009,7 +1397,7 @@ LABEL_11:
 						}
 						else
 						{
-							v24 = *(_WORD *)(dword_1000E400 + 80);
+							v24 = *(WORD*)(dword_1000E400 + 80);
 							v25 = v11 >> 16;
 							v26 = HIBYTE(v24) < BYTE1(v25);
 							HIBYTE(v24) -= BYTE1(v25);
@@ -2045,7 +1433,7 @@ LABEL_11:
 										while (BYTE1(v33) != 32)
 										{
 											v36 = dword_10018EA4
-												+ (v35 & (*(_DWORD *)pPrimaryBuffer & 0xFFFF | (*(_DWORD *)pPrimaryBuffer << 16)))
+												+ (v35 & (*(DWORD*)pPrimaryBuffer & 0xFFFF | (*(DWORD*)pPrimaryBuffer << 16)))
 												* BYTE1(v33);
 											v33 += dword_10018E98;
 											v37 = v36;
@@ -2055,11 +1443,11 @@ LABEL_11:
 											pPrimaryBuffer += 2;
 											v32 = v38 >> 16;
 											LOBYTE(v34) = v34 - 1;
-											*((_WORD *)pSurfaceData - 1) = HIWORD(v38) | v38;
+											*((WORD*)pSurfaceData - 1) = HIWORD(v38) | v38;
 											if (!(_BYTE)v34)
 												goto LABEL_30;
 										}
-										*(_WORD *)pSurfaceData = v32;
+										*(WORD*)pSurfaceData = v32;
 										pSurfaceData += 2;
 										pPrimaryBuffer += 2;
 										v33 += dword_10018E98;
@@ -2090,18 +1478,18 @@ LABEL_11:
 						{
 							do
 							{
-								v20 = v18 & (*((_DWORD *)pPrimaryBuffer + 1) >> 1);
-								*(_DWORD *)pSurfaceData = v18 & (*(_DWORD *)pPrimaryBuffer >> 1);
-								*((_DWORD *)pSurfaceData + 1) = v20;
-								v21 = v18 & (*((_DWORD *)pPrimaryBuffer + 3) >> 1);
-								*((_DWORD *)pSurfaceData + 2) = v18 & (*((_DWORD *)pPrimaryBuffer + 2) >> 1);
-								*((_DWORD *)pSurfaceData + 3) = v21;
-								v22 = v18 & (*((_DWORD *)pPrimaryBuffer + 5) >> 1);
-								*((_DWORD *)pSurfaceData + 4) = v18 & (*((_DWORD *)pPrimaryBuffer + 4) >> 1);
-								*((_DWORD *)pSurfaceData + 5) = v22;
-								v23 = v18 & (*((_DWORD *)pPrimaryBuffer + 7) >> 1);
-								*((_DWORD *)pSurfaceData + 6) = v18 & (*((_DWORD *)pPrimaryBuffer + 6) >> 1);
-								*((_DWORD *)pSurfaceData + 7) = v23;
+								v20 = v18 & (*((DWORD*)pPrimaryBuffer + 1) >> 1);
+								*(DWORD*)pSurfaceData = v18 & (*(DWORD*)pPrimaryBuffer >> 1);
+								*((DWORD*)pSurfaceData + 1) = v20;
+								v21 = v18 & (*((DWORD*)pPrimaryBuffer + 3) >> 1);
+								*((DWORD*)pSurfaceData + 2) = v18 & (*((DWORD*)pPrimaryBuffer + 2) >> 1);
+								*((DWORD*)pSurfaceData + 3) = v21;
+								v22 = v18 & (*((DWORD*)pPrimaryBuffer + 5) >> 1);
+								*((DWORD*)pSurfaceData + 4) = v18 & (*((DWORD*)pPrimaryBuffer + 4) >> 1);
+								*((DWORD*)pSurfaceData + 5) = v22;
+								v23 = v18 & (*((DWORD*)pPrimaryBuffer + 7) >> 1);
+								*((DWORD*)pSurfaceData + 6) = v18 & (*((DWORD*)pPrimaryBuffer + 6) >> 1);
+								*((DWORD*)pSurfaceData + 7) = v23;
 								pPrimaryBuffer += 1280;
 								pSurfaceData += lSurfacePitch;
 								--BYTE1(v17);
@@ -2135,29 +1523,11 @@ LABEL_11:
 		pPrimaryBuffer = v43 - 604160;
 		dword_101DBDF8 = v39;
 	} while (v39);
-	result = *(_DWORD *)(v41 - 4);                // result = a1->bNeedUnlockSurface;
+	result = *(DWORD*)(v41 - 4);                // result = a1->bNeedUnlockSurface;
 	if (result)
 		result = UnlockSurface();
 	return result;
 }
-// 1000E400: using guessed type int dword_1000E400;
-// 1000E404: using guessed type int dword_1000E404;
-// 1000E408: using guessed type int dword_1000E408;
-// 1000E40C: using guessed type int dword_1000E40C;
-// 1000E410: using guessed type int dword_1000E410;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E468: using guessed type int dword_1000E468;
-// 1000E46C: using guessed type __int16 word_1000E46C;
-// 1000E470: using guessed type int dword_1000E470;
-// 10018E98: using guessed type int dword_10018E98;
-// 10018E9C: using guessed type int dword_10018E9C;
-// 10018EA0: using guessed type int dword_10018EA0;
-// 10018EA4: using guessed type int dword_10018EA4;
-// 101DBDF0: using guessed type int dword_101DBDF0;
-// 101DBDF4: using guessed type int dword_101DBDF4;
-// 101DBDF8: using guessed type int dword_101DBDF8;
-// 101DBDFC: using guessed type int dword_101DBDFC;
 
 //----- (10003090) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_10003090@<eax > (int a1@<ebp > )".
@@ -2196,24 +1566,24 @@ int sub_10003090(int a1)
 	int v31; // [sp-18h] [bp-28h]@8
 	char *v32; // [sp-10h] [bp-20h]@8
 
-	v1 = 1 - *(_DWORD *)(a1 + 12) + *(_DWORD *)(a1 + 20);
-	*(_DWORD *)(a1 + 16) += 1 - *(_DWORD *)(a1 + 8);
-	*(_DWORD *)(a1 + 20) = v1;
+	v1 = 1 - *(DWORD*)(a1 + 12) + *(DWORD*)(a1 + 20);
+	*(DWORD*)(a1 + 16) += 1 - *(DWORD*)(a1 + 8);
+	*(DWORD*)(a1 + 20) = v1;
 	dword_10018EA4 = 0;
 	dword_1000E410 = dword_1000E470;
-	*(_DWORD *)(a1 - 4) = (char *)&unk_1000E70C + 80 * (*(_DWORD *)(a1 + 12) >> 3) + (*(_DWORD *)(a1 + 8) >> 4);
-	v2 = (char *)&g_aBufferPrimary16[640 * *(_DWORD *)(a1 + 12)] + 2 * *(_DWORD *)(a1 + 8) + g_result.offset;
-	*(_DWORD *)(a1 + 16) >>= 4;
+	*(DWORD*)(a1 - 4) = (char *)&unk_1000E70C + 80 * (*(DWORD*)(a1 + 12) >> 3) + (*(DWORD*)(a1 + 8) >> 4);
+	v2 = (char *)&g_result.a_buffer1[640 * *(DWORD*)(a1 + 12)] + 2 * *(DWORD*)(a1 + 8) + g_result.offset;
+	*(DWORD*)(a1 + 16) >>= 4;
 	dword_1000E408 = -10208;
-	v3 = *(_DWORD *)(a1 + 12);
+	v3 = *(DWORD*)(a1 + 12);
 	if (v3 >= g_result.surfaceHeight)
 	{
 		v2 -= 614400;
 	}
 	else
 	{
-		v4 = *(_DWORD *)(a1 + 12);
-		v5 = *(_DWORD *)(a1 + 20) + v3;
+		v4 = *(DWORD*)(a1 + 12);
+		v5 = *(DWORD*)(a1 + 20) + v3;
 		if (v5 > g_result.surfaceHeight)
 		{
 			dword_10018EA0 = (v5 - g_result.surfaceHeight) >> 3;
@@ -2233,7 +1603,7 @@ int sub_10003090(int a1)
 			goto LABEL_7;
 		}
 	}
-	dword_101DBDF8 = *(_DWORD *)(a1 + 20) >> 3;
+	dword_101DBDF8 = *(DWORD*)(a1 + 20) >> 3;
 	dword_101DBDF4 = 0;
 	dword_10018EA0 = 0;
 LABEL_7:
@@ -2242,15 +1612,15 @@ LABEL_7:
 	{
 	LABEL_8:
 		v32 = v2;
-		v8 = *(_DWORD *)(a1 - 4);
-		*(_DWORD *)(a1 - 4) += 80;
+		v8 = *(DWORD*)(a1 - 4);
+		*(DWORD*)(a1 - 4) += 80;
 		dword_1000E400 = v8;
-		dword_101DBDFC = *(_DWORD *)(a1 + 16);
+		dword_101DBDFC = *(DWORD*)(a1 + 16);
 		v31 = a1;
 		do
 		{
-			v9 = *(_DWORD *)(dword_1000E400 - 2);
-			LOWORD(v9) = *(_WORD *)(dword_1000E400 + 80);
+			v9 = *(DWORD*)(dword_1000E400 - 2);
+			LOWORD(v9) = *(WORD*)(dword_1000E400 + 80);
 			if (v9)
 			{
 				if (v9 == -2139062144)
@@ -2259,7 +1629,7 @@ LABEL_7:
 					v2 += 32;
 					goto LABEL_27;
 				}
-				v17 = *(_WORD *)(dword_1000E400 + 80);
+				v17 = *(WORD*)(dword_1000E400 + 80);
 				v18 = v9 >> 16;
 				v19 = HIBYTE(v17) < BYTE1(v18);
 				HIBYTE(v17) -= BYTE1(v18);
@@ -2293,10 +1663,10 @@ LABEL_7:
 						{
 							while (BYTE1(v25) != 32)
 							{
-								v28 = dword_10018EA4 + (v27 & (*(_DWORD *)v2 & 0xFFFF | (*(_DWORD *)v2 << 16))) * BYTE1(v25);
+								v28 = dword_10018EA4 + (v27 & (*(DWORD*)v2 & 0xFFFF | (*(DWORD*)v2 << 16))) * BYTE1(v25);
 								v25 += dword_10018E98;
 								dword_10018EA4 = v27 & v28;
-								*(_WORD *)v2 = ((v27 & (v28 >> 5)) >> 16) | v27 & (v28 >> 5);
+								*(WORD*)v2 = ((v27 & (v28 >> 5)) >> 16) | v27 & (v28 >> 5);
 								v2 += 2;
 								LOBYTE(v26) = v26 - 1;
 								if (!(_BYTE)v26)
@@ -2329,18 +1699,18 @@ LABEL_7:
 				{
 					do
 					{
-						v13 = v12 & (*((_DWORD *)v2 + 1) >> 1);
-						*(_DWORD *)v2 = v12 & (*(_DWORD *)v2 >> 1);
-						*((_DWORD *)v2 + 1) = v13;
-						v14 = v12 & (*((_DWORD *)v2 + 3) >> 1);
-						*((_DWORD *)v2 + 2) = v12 & (*((_DWORD *)v2 + 2) >> 1);
-						*((_DWORD *)v2 + 3) = v14;
-						v15 = v12 & (*((_DWORD *)v2 + 5) >> 1);
-						*((_DWORD *)v2 + 4) = v12 & (*((_DWORD *)v2 + 4) >> 1);
-						*((_DWORD *)v2 + 5) = v15;
-						v16 = v12 & (*((_DWORD *)v2 + 7) >> 1);
-						*((_DWORD *)v2 + 6) = v12 & (*((_DWORD *)v2 + 6) >> 1);
-						*((_DWORD *)v2 + 7) = v16;
+						v13 = v12 & (*((DWORD*)v2 + 1) >> 1);
+						*(DWORD*)v2 = v12 & (*(DWORD*)v2 >> 1);
+						*((DWORD*)v2 + 1) = v13;
+						v14 = v12 & (*((DWORD*)v2 + 3) >> 1);
+						*((DWORD*)v2 + 2) = v12 & (*((DWORD*)v2 + 2) >> 1);
+						*((DWORD*)v2 + 3) = v14;
+						v15 = v12 & (*((DWORD*)v2 + 5) >> 1);
+						*((DWORD*)v2 + 4) = v12 & (*((DWORD*)v2 + 4) >> 1);
+						*((DWORD*)v2 + 5) = v15;
+						v16 = v12 & (*((DWORD*)v2 + 7) >> 1);
+						*((DWORD*)v2 + 6) = v12 & (*((DWORD*)v2 + 6) >> 1);
+						*((DWORD*)v2 + 7) = v16;
 						v2 += 1280;
 						--BYTE1(v10);
 					} while (BYTE1(v10));
@@ -2426,7 +1796,7 @@ unsigned __int8 __cdecl x_sub_10003430_call(int a1, int a2, int a3, int a4, int 
 	v6 = 0;
 	for (result = *(_BYTE *)a3; result; v6 += *(_BYTE *)(a4 + 2 * v8 + 1028) + 2)
 	{
-		sub_100051AF(a4, a5, (int)v5, v6, v6 + a1, a2, a5, a4 + *(_DWORD *)(a4 + 4 * result));
+		sub_100051AF(a4, a5, (int)v5, v6, v6 + a1, a2, a5, a4 + *(DWORD*)(a4 + 4 * result));
 		result = v5[1];
 		v8 = *v5++;
 	}
@@ -2445,7 +1815,7 @@ unsigned __int8 __cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3,
 	v6 = 0;
 	for (result = *a3; result; v6 += *(_BYTE *)(a4 + 2 * v8 + 1028) + 2)
 	{
-		sub_10005F01(a4, a2, (int)v5, v6, v6 + a1, a2, a2, a5, a4 + *(_DWORD *)(a4 + 4 * result));
+		sub_10005F01(a4, a2, (int)v5, v6, v6 + a1, a2, a2, a5, a4 + *(DWORD*)(a4 + 4 * result));
 		result = v5[1];
 		v8 = *v5++;
 	}
@@ -2457,7 +1827,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 {
 	int result; // eax@1
 	_BYTE *v10; // esi@5
-	_WORD *v11; // edi@5
+	WORD*v11; // edi@5
 	int v12; // edx@5
 	int v13; // ebx@6
 	int v14; // eax@6
@@ -2489,7 +1859,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 	int v40; // [sp-10h] [bp-1Ch]@43
 	int v41; // [sp-Ch] [bp-18h]@17
 	int v42; // [sp-Ch] [bp-18h]@43
-	_WORD *v43; // [sp-8h] [bp-14h]@17
+	WORD*v43; // [sp-8h] [bp-14h]@17
 	char *v44; // [sp-8h] [bp-14h]@43
 	_BYTE *v45; // [sp-4h] [bp-10h]@17
 	_BYTE *v46; // [sp-4h] [bp-10h]@43
@@ -2515,7 +1885,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 	if (result > a6)
 		return result;
 	v10 = (_BYTE *)a8;
-	v11 = (_WORD *)(g_result.offset + a9 + a5 + a5 + a7 * a6 - 2);
+	v11 = (WORD*)(g_result.offset + a9 + a5 + a5 + a7 * a6 - 2);
 	v47 = a5 + 32;
 	v12 = 4 * (a2 - a1);
 	if ((unsigned __int16)rcRect_top - 16 > a6)
@@ -2568,7 +1938,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 				v13 += dword_1000E03D;
 				v15 += 4;
 				v47 -= 2;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				--v16;
 			} while (v16);
 		}
@@ -2598,7 +1968,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 				v10 += v15;
 				v15 += 4;
 				v13 += dword_1000E03D;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				v47 -= 2;
 				if (!--dword_1000E041)
 				{
@@ -2634,7 +2004,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 					goto LABEL_30;
 				}
 				v10 += v24;
-				v11 = (_WORD *)((char *)v11 + v24 + v24);
+				v11 = (WORD*)((char *)v11 + v24 + v24);
 				v15 -= v24;
 				do
 				{
@@ -2747,7 +2117,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 		{
 			BYTE1(v35) = BYTE1(v29);
 			LOBYTE(v35) = *v10++;
-			*(_WORD *)v27 = word_10010784[v35];
+			*(WORD*)v27 = word_10010784[v35];
 			v27 += 2;
 			v29 += v12;
 			BYTE1(v29) ^= 0x20u;
@@ -2780,7 +2150,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 	int v8; // eax@1
 	int result; // eax@1
 	unsigned __int64 v10; // rax@5
-	_WORD *v11; // edi@5
+	WORD*v11; // edi@5
 	int v12; // esi@5
 	int v13; // ebx@6
 	int v14; // eax@6
@@ -2814,7 +2184,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 	int v42; // [sp-Ch] [bp-18h]@46
 	int v43; // [sp-8h] [bp-14h]@17
 	int v44; // [sp-8h] [bp-14h]@46
-	_WORD *v45; // [sp-4h] [bp-10h]@17
+	WORD*v45; // [sp-4h] [bp-10h]@17
 	char *v46; // [sp-4h] [bp-10h]@46
 	int xa; // [sp+24h] [bp+18h]@5
 	int xb; // [sp+24h] [bp+18h]@36
@@ -2842,7 +2212,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 	if (result > y)
 		return result;
 	v10 = a7 * (unsigned __int64)(unsigned int)y;
-	v11 = (_WORD *)(g_result.offset + a8 + x + x + v10 - 2);
+	v11 = (WORD*)(g_result.offset + a8 + x + x + v10 - 2);
 	xa = x + 32;
 	v12 = 4 * (a2 - a1);
 	if ((unsigned __int16)rcRect_top - 16 > y)
@@ -2892,7 +2262,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 				v13 += dword_1000E03D;
 				v15 += 4;
 				xa -= 2;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				--v16;
 			} while (v16);
 		}
@@ -2921,7 +2291,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 			LABEL_33:
 				v15 += 4;
 				v13 += dword_1000E03D;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				xa -= 2;
 				if (!--dword_1000E041)
 				{
@@ -2954,7 +2324,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 					v11 = v45;
 					goto LABEL_33;
 				}
-				v11 = (_WORD *)((char *)v11 + v24 + v24);
+				v11 = (WORD*)((char *)v11 + v24 + v24);
 				v15 -= v24;
 				do
 				{
@@ -3071,14 +2441,14 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 			{
 				if ((_BYTE)v10)
 				{
-					WORD2(v10) = *(_WORD *)v28;
+					WORD2(v10) = *(WORD*)v28;
 					v36 = HIDWORD(v10) << 16;
-					LOWORD(v36) = *(_WORD *)v28;
+					LOWORD(v36) = *(WORD*)v28;
 					v37 = dword_1000E030 & ((dword_1000E030 & v36) * (unsigned int)BYTE1(v30) >> 5);
 					HIDWORD(v10) = v37 >> 16;
 					LODWORD(v10) = ((unsigned int)v10 >> 16) | v10;
 				}
-				*(_WORD *)v28 = v10;
+				*(WORD*)v28 = v10;
 			}
 			v28 += 2;
 			LOWORD(v30) = v12 + v30;
@@ -3113,7 +2483,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 {
 	int result; // eax@1
 	_BYTE *v10; // esi@5
-	_WORD *v11; // edi@5
+	WORD*v11; // edi@5
 	int v12; // edx@5
 	int v13; // ebx@6
 	int v14; // eax@6
@@ -3143,7 +2513,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 	int v38; // [sp-10h] [bp-1Ch]@44
 	int v39; // [sp-Ch] [bp-18h]@17
 	int v40; // [sp-Ch] [bp-18h]@44
-	_WORD *v41; // [sp-8h] [bp-14h]@17
+	WORD*v41; // [sp-8h] [bp-14h]@17
 	char *v42; // [sp-8h] [bp-14h]@44
 	_BYTE *v43; // [sp-4h] [bp-10h]@17
 	_BYTE *v44; // [sp-4h] [bp-10h]@44
@@ -3169,7 +2539,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 	if (result > a6)
 		return result;
 	v10 = (_BYTE *)a8;
-	v11 = (_WORD *)(g_result.offset + a9 + a5 + a5 + a7 * a6 - 2);
+	v11 = (WORD*)(g_result.offset + a9 + a5 + a5 + a7 * a6 - 2);
 	v45 = a5 + 32;
 	v12 = 4 * (a2 - a1);
 	if ((unsigned __int16)rcRect_top - 16 > a6)
@@ -3222,7 +2592,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 				v13 += dword_1000E03D;
 				v15 += 4;
 				v45 -= 2;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				--v16;
 			} while (v16);
 		}
@@ -3252,7 +2622,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 				v10 += v15;
 				v15 += 4;
 				v13 += dword_1000E03D;
-				v11 = (_WORD *)((char *)v11 + a7 - 4);
+				v11 = (WORD*)((char *)v11 + a7 - 4);
 				v45 -= 2;
 				if (!--dword_1000E041)
 				{
@@ -3288,7 +2658,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 					goto LABEL_31;
 				}
 				v10 += v24;
-				v11 = (_WORD *)((char *)v11 + v24 + v24);
+				v11 = (WORD*)((char *)v11 + v24 + v24);
 				v15 -= v24;
 				do
 				{
@@ -3393,7 +2763,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 		{
 		LABEL_52:
 			if (*v10)
-				*(_WORD *)v26 = 0;
+				*(WORD*)v26 = 0;
 			++v10;
 			v26 += 2;
 			v28 += v12;
@@ -3424,7 +2794,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 {
 	int v5; // eax@1
 	int result; // eax@1
-	_WORD *v7; // edi@5
+	WORD*v7; // edi@5
 	int v8; // eax@6
 	signed int v9; // ecx@8
 	int v10; // eax@8
@@ -3451,7 +2821,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 	int v31; // eax@59
 	signed int v32; // [sp-Ch] [bp-18h]@17
 	int v33; // [sp-Ch] [bp-18h]@43
-	_WORD *v34; // [sp-4h] [bp-10h]@17
+	WORD*v34; // [sp-4h] [bp-10h]@17
 	char *v35; // [sp-4h] [bp-10h]@43
 	int v36; // [sp+14h] [bp+8h]@5
 	int v37; // [sp+14h] [bp+8h]@33
@@ -3477,7 +2847,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 	result = (unsigned __int16)rcRect_top - 32;
 	if (result > a2)
 		return result;
-	v7 = (_WORD *)(g_result.offset + a5 + a1 + a1 + a3 * a2 - 2);
+	v7 = (WORD*)(g_result.offset + a5 + a1 + a1 + a3 * a2 - 2);
 	v36 = a1 + 32;
 	if ((unsigned __int16)rcRect_top - 16 > a2)
 	{
@@ -3520,7 +2890,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 			{
 				v9 += 4;
 				v36 -= 2;
-				v7 = (_WORD *)((char *)v7 + a3 - 4);
+				v7 = (WORD*)((char *)v7 + a3 - 4);
 				--v10;
 			} while (v10);
 		}
@@ -3548,7 +2918,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 					break;
 			LABEL_30:
 				v9 += 4;
-				v7 = (_WORD *)((char *)v7 + a3 - 4);
+				v7 = (WORD*)((char *)v7 + a3 - 4);
 				v36 -= 2;
 				if (!--dword_1000E041)
 				{
@@ -3579,7 +2949,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 					v7 = v34;
 					goto LABEL_30;
 				}
-				v7 = (_WORD *)((char *)v7 + v18 + v18);
+				v7 = (WORD*)((char *)v7 + v18 + v18);
 				v9 -= v18;
 				do
 					--v18;
@@ -3674,9 +3044,9 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 		HIWORD(v29) = 0;
 		do
 		{
-			LOWORD(v29) = *(_WORD *)v21;
+			LOWORD(v29) = *(WORD*)v21;
 			v29 = v23 + ((dword_1000E468 & v29) >> 1);
-			*(_WORD *)v21 = v29;
+			*(WORD*)v21 = v29;
 			v21 += 2;
 			--v20;
 		} while (v20);
@@ -3708,7 +3078,7 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 {
 	int v7; // edx@1
-	_WORD *v8; // esi@1
+	WORD*v8; // esi@1
 	int result; // eax@1
 	int v10; // edx@1
 	int v11; // edx@2
@@ -3741,7 +3111,7 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	int v38; // eax@31
 	int v39; // eax@33
 	int v40; // eax@37
-	_WORD *v41; // edi@37
+	WORD*v41; // edi@37
 	int v42; // [sp+8h] [bp+8h]@1
 	int v43; // [sp+Ch] [bp+Ch]@1
 
@@ -3753,11 +3123,11 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v42 = *(_WORD *)a7 + a5;
-	v43 = *(_WORD *)(a7 + 2) + a6;
-	v7 = *(_WORD *)(a7 + 4) + 1;
-	v8 = (_WORD *)(a7 + 9);
-	dword_1000E09A = *(_WORD *)(a7 + 6);
+	v42 = *(WORD*)a7 + a5;
+	v43 = *(WORD*)(a7 + 2) + a6;
+	v7 = *(WORD*)(a7 + 4) + 1;
+	v8 = (WORD*)(a7 + 9);
+	dword_1000E09A = *(WORD*)(a7 + 6);
 	dword_1000E064 = v7;
 	result = LOWORD(g_result.screen.top);
 	v10 = v43 - LOWORD(g_result.screen.top);
@@ -3775,7 +3145,7 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		do
 		{
 			LOWORD(result) = *v8;
-			v8 = (_WORD *)((char *)v8 + result + 2);
+			v8 = (WORD*)((char *)v8 + result + 2);
 			--v14;
 		} while (v14);
 	}
@@ -3788,8 +3158,8 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 			dword_1000E09A -= v15,
 			!((unsigned __int8)(v12 ^ v13) | v34)))
 	{
-		v16 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v17 = (unsigned int)(v43 * g_dwWidthInBytes) >> 1;
+		v16 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v17 = (unsigned int)(v43 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v16 + v17 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v16 + (unsigned __int16)g_rcScreenSmallRect.Right + v17 + 1;
 		v18 = v42 + v17 + v16;
@@ -3837,8 +3207,8 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						}
 						else
 						{
-							v40 = *(_DWORD *)((char *)&unk_10018984 + 2 * (unsigned __int8)*v27);
-							v41 = (_WORD *)(2 * v18);
+							v40 = *(DWORD*)((char *)&unk_10018984 + 2 * (unsigned __int8)*v27);
+							v41 = (WORD*)(2 * v18);
 							while (v37)
 							{
 								*v41 = v40;
@@ -3853,7 +3223,7 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						do
 						{
 							v38 = (unsigned __int8)*v27++;
-							*(_WORD *)(2 * v18++) = *(_DWORD *)((char *)&unk_10018984 + 2 * v38);
+							*(WORD*)(2 * v18++) = *(DWORD*)((char *)&unk_10018984 + 2 * v38);
 							--v37;
 						} while (v37);
 						result = dword_1000E06C(v42, v43);
@@ -3863,9 +3233,9 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						do
 						{
 							v39 = (unsigned __int8)*v27++;
-							*(_WORD *)(2 * v18) = (*(_DWORD *)(2 * v18)
-								+ *(_DWORD *)((char *)&unk_10018984 + 2 * v39)
-								- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v18) ^ *(_DWORD *)((char *)&unk_10018984 + 2 * v39)))) >> 1;
+							*(WORD*)(2 * v18) = (*(DWORD*)(2 * v18)
+								+ *(DWORD*)((char *)&unk_10018984 + 2 * v39)
+								- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v18) ^ *(DWORD*)((char *)&unk_10018984 + 2 * v39)))) >> 1;
 							++v18;
 							--v37;
 						} while (v37);
@@ -3921,10 +3291,10 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v8 = (_WORD *)v23;
-			v18 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v8 = (WORD*)v23;
+			v18 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_42:
@@ -3946,7 +3316,7 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 {
 	int v7; // edx@1
-	_WORD *v8; // esi@1
+	WORD*v8; // esi@1
 	int result; // eax@1
 	int v10; // edx@1
 	int v11; // edx@2
@@ -3979,7 +3349,7 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	int v38; // eax@31
 	int v39; // eax@33
 	int v40; // eax@37
-	_WORD *v41; // edi@37
+	WORD*v41; // edi@37
 	int v42; // [sp+8h] [bp+8h]@1
 	int v43; // [sp+Ch] [bp+Ch]@1
 
@@ -3991,11 +3361,11 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v42 = *(_WORD *)a7 + a5;
-	v43 = *(_WORD *)(a7 + 2) + a6;
-	v7 = *(_WORD *)(a7 + 4) + 1;
-	v8 = (_WORD *)(a7 + 9);
-	dword_1000E09A = *(_WORD *)(a7 + 6);
+	v42 = *(WORD*)a7 + a5;
+	v43 = *(WORD*)(a7 + 2) + a6;
+	v7 = *(WORD*)(a7 + 4) + 1;
+	v8 = (WORD*)(a7 + 9);
+	dword_1000E09A = *(WORD*)(a7 + 6);
 	dword_1000E064 = v7;
 	result = LOWORD(g_result.screen.top);
 	v10 = v43 - LOWORD(g_result.screen.top);
@@ -4013,7 +3383,7 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		do
 		{
 			LOWORD(result) = *v8;
-			v8 = (_WORD *)((char *)v8 + result + 2);
+			v8 = (WORD*)((char *)v8 + result + 2);
 			--v14;
 		} while (v14);
 	}
@@ -4026,8 +3396,8 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 			dword_1000E09A -= v15,
 			!((unsigned __int8)(v12 ^ v13) | v34)))
 	{
-		v16 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v17 = (unsigned int)(v43 * g_dwWidthInBytes) >> 1;
+		v16 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v17 = (unsigned int)(v43 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v16 + v17 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v16 + (unsigned __int16)g_rcScreenSmallRect.Right + v17 + 1;
 		v18 = v42 + v17 + v16;
@@ -4075,8 +3445,8 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						}
 						else
 						{
-							v40 = *(_DWORD *)((char *)&unk_10018B84 + 2 * (unsigned __int8)*v27);
-							v41 = (_WORD *)(2 * v18);
+							v40 = *(DWORD*)((char *)&unk_10018B84 + 2 * (unsigned __int8)*v27);
+							v41 = (WORD*)(2 * v18);
 							while (v37)
 							{
 								*v41 = v40;
@@ -4091,7 +3461,7 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						do
 						{
 							v38 = (unsigned __int8)*v27++;
-							*(_WORD *)(2 * v18++) = *(_DWORD *)((char *)&unk_10018B84 + 2 * v38);
+							*(WORD*)(2 * v18++) = *(DWORD*)((char *)&unk_10018B84 + 2 * v38);
 							--v37;
 						} while (v37);
 						result = dword_1000E06C(v42, v43);
@@ -4101,9 +3471,9 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 						do
 						{
 							v39 = (unsigned __int8)*v27++;
-							*(_WORD *)(2 * v18) = (*(_DWORD *)(2 * v18)
-								+ *(_DWORD *)((char *)&unk_10018B84 + 2 * v39)
-								- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v18) ^ *(_DWORD *)((char *)&unk_10018B84 + 2 * v39)))) >> 1;
+							*(WORD*)(2 * v18) = (*(DWORD*)(2 * v18)
+								+ *(DWORD*)((char *)&unk_10018B84 + 2 * v39)
+								- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v18) ^ *(DWORD*)((char *)&unk_10018B84 + 2 * v39)))) >> 1;
 							++v18;
 							--v37;
 						} while (v37);
@@ -4159,10 +3529,10 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v8 = (_WORD *)v23;
-			v18 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v8 = (WORD*)v23;
+			v18 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_42:
@@ -4196,7 +3566,7 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 // 1000E418: using guessed type RECT g_result.screen;
 // 1000E428: using guessed type int g_result.offset;
 // 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_dwWidthInBytes;
+// 1000E438: using guessed type int g_result.widthInBytes;
 // 1000E460: using guessed type int dword_1000E460;
 
 //----- (10004AB6) --------------------------------------------------------
@@ -4256,11 +3626,11 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v8 = a2 << 16;
 	LOWORD(v8) = 32 * (a7 + 1088);
-	v47 = *(_WORD *)a8 + a5;
-	v48 = *(_WORD *)(a8 + 2) + a6;
-	v9 = *(_WORD *)(a8 + 4) + 1;
-	v10 = (_WORD *)(a8 + 9);
-	dword_1000E09A = *(_WORD *)(a8 + 6);
+	v47 = *(WORD*)a8 + a5;
+	v48 = *(WORD*)(a8 + 2) + a6;
+	v9 = *(WORD*)(a8 + 4) + 1;
+	v10 = (WORD*)(a8 + 9);
+	dword_1000E09A = *(WORD*)(a8 + 6);
 	dword_1000E064 = v9;
 	result = LOWORD(g_result.screen.top);
 	v12 = v48 - LOWORD(g_result.screen.top);
@@ -4278,7 +3648,7 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v10;
-			v10 = (_WORD *)((char *)v10 + result + 2);
+			v10 = (WORD*)((char *)v10 + result + 2);
 			--v16;
 		} while (v16);
 	}
@@ -4291,8 +3661,8 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v17,
 			!((unsigned __int8)(v14 ^ v15) | v35)))
 	{
-		v18 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v19 = (unsigned int)(v48 * g_dwWidthInBytes) >> 1;
+		v18 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v19 = (unsigned int)(v48 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v18 + v19 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v18 + (unsigned __int16)g_rcScreenSmallRect.Right + v19 + 1;
 		v20 = v47 + v19 + v18;
@@ -4340,14 +3710,14 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						}
 						else
 						{
-							v45 = *(_DWORD *)((char *)&unk_10018784 + 2 * (unsigned __int8)*v28);
+							v45 = *(DWORD*)((char *)&unk_10018784 + 2 * (unsigned __int8)*v28);
 							do
 							{
-								v46 = v8 | *(_DWORD *)(2 * v20 + 0x96524) & 3;
-								*(_WORD *)(2 * v20 + 0x96524) = v46;
+								v46 = v8 | *(DWORD*)(2 * v20 + 0x96524) & 3;
+								*(WORD*)(2 * v20 + 0x96524) = v46;
 								if (v46 & 2)
 									v45 = dword_1000E480 + ((dword_1000E468 & v45) >> 1);
-								*(_WORD *)(2 * v20++) = v45;
+								*(WORD*)(2 * v20++) = v45;
 								--v38;
 							} while (v38);
 							result = dword_1000E06C(v47, v48);
@@ -4358,12 +3728,12 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						do
 						{
 							v39 = (unsigned __int8)*v28++;
-							v40 = *(_DWORD *)((char *)&unk_10018784 + 2 * v39);
-							v41 = v8 | *(_DWORD *)(2 * v20 + 0x96524) & 3;
-							*(_WORD *)(2 * v20 + 0x96524) = v41;
+							v40 = *(DWORD*)((char *)&unk_10018784 + 2 * v39);
+							v41 = v8 | *(DWORD*)(2 * v20 + 0x96524) & 3;
+							*(WORD*)(2 * v20 + 0x96524) = v41;
 							if (v41 & 2)
 								LOWORD(v40) = dword_1000E480 + ((dword_1000E468 & v40) >> 1);
-							*(_WORD *)(2 * v20++) = v40;
+							*(WORD*)(2 * v20++) = v40;
 							--v38;
 						} while (v38);
 						result = dword_1000E06C(v47, v48);
@@ -4373,14 +3743,14 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						do
 						{
 							v42 = (unsigned __int8)*v28++;
-							v43 = (*(_DWORD *)(2 * v20)
-								+ *(_DWORD *)((char *)&unk_10018784 + 2 * v42)
-								- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v20) ^ *(_DWORD *)((char *)&unk_10018784 + 2 * v42)))) >> 1;
-							v44 = v8 | *(_DWORD *)(2 * v20 + 0x96524) & 3;
-							*(_WORD *)(2 * v20 + 0x96524) = v44;
+							v43 = (*(DWORD*)(2 * v20)
+								+ *(DWORD*)((char *)&unk_10018784 + 2 * v42)
+								- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v20) ^ *(DWORD*)((char *)&unk_10018784 + 2 * v42)))) >> 1;
+							v44 = v8 | *(DWORD*)(2 * v20 + 0x96524) & 3;
+							*(WORD*)(2 * v20 + 0x96524) = v44;
 							if (v44 & 2)
 								LOWORD(v43) = dword_1000E480 + ((dword_1000E468 & v43) >> 1);
-							*(_WORD *)(2 * v20++) = v43;
+							*(WORD*)(2 * v20++) = v43;
 							--v38;
 						} while (v38);
 						result = dword_1000E06C(v47, v48);
@@ -4435,10 +3805,10 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v10 = (_WORD *)dword_1000E080;
-			v20 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v10 = (WORD*)dword_1000E080;
+			v20 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_47:
@@ -4473,7 +3843,7 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 // 1000E418: using guessed type RECT g_result.screen;
 // 1000E428: using guessed type int g_result.offset;
 // 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_dwWidthInBytes;
+// 1000E438: using guessed type int g_result.widthInBytes;
 // 1000E460: using guessed type int dword_1000E460;
 // 1000E468: using guessed type int dword_1000E468;
 // 1000E480: using guessed type int dword_1000E480;
@@ -4484,7 +3854,7 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 {
 	unsigned int v9; // ebp@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -4527,11 +3897,11 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v9 = a2 << 16;
 	LOWORD(v9) = 32 * (a7 + 1088);
-	v40 = *(_WORD *)a9 + a5;
-	v41 = *(_WORD *)(a9 + 2) + a6;
-	v10 = *(_WORD *)(a9 + 4) + 1;
-	v11 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v40 = *(WORD*)a9 + a5;
+	v41 = *(WORD*)(a9 + 2) + a6;
+	v10 = *(WORD*)(a9 + 4) + 1;
+	v11 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v41 - LOWORD(g_result.screen.top);
@@ -4549,7 +3919,7 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v18;
 		} while (v18);
 	}
@@ -4562,8 +3932,8 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v19,
 			!((unsigned __int8)(v16 ^ v17) | v15)))
 	{
-		v20 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v21 = (unsigned int)(v41 * g_dwWidthInBytes) >> 1;
+		v20 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v21 = (unsigned int)(v41 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v20 + v21 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v20 + (unsigned __int16)g_rcScreenSmallRect.Right + v21 + 1;
 		v22 = v40 + v21 + v20;
@@ -4604,12 +3974,12 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						if (*v30)
 						{
-							v39 = *(_DWORD *)(a8 + 2 * *v30);
+							v39 = *(DWORD*)(a8 + 2 * *v30);
 							do
 							{
-								while (*(_DWORD *)(2 * v22 + 0x12CA46) < v9)
+								while (*(DWORD*)(2 * v22 + 0x12CA46) < v9)
 								{
-									*(_WORD *)(2 * v22++) = v39;
+									*(WORD*)(2 * v22++) = v39;
 									if (!--v37)
 										return dword_1000E06C(v40, v41);
 								}
@@ -4627,10 +3997,10 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while (*(_DWORD *)(2 * v22 + 0x12CA46) < v9)
+							while (*(DWORD*)(2 * v22 + 0x12CA46) < v9)
 							{
 								v38 = *v30++;
-								*(_WORD *)(2 * v22++) = *(_DWORD *)(a8 + 2 * v38);
+								*(WORD*)(2 * v22++) = *(DWORD*)(a8 + 2 * v38);
 								if (!--v37)
 									return dword_1000E06C(v40, v41);
 							}
@@ -4688,10 +4058,10 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v11 = (_WORD *)dword_1000E080;
-			v22 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v11 = (WORD*)dword_1000E080;
+			v22 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_43:
@@ -4726,14 +4096,14 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 // 1000E418: using guessed type RECT g_result.screen;
 // 1000E428: using guessed type int g_result.offset;
 // 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_dwWidthInBytes;
+// 1000E438: using guessed type int g_result.widthInBytes;
 
 //----- (100051AF) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_100051AF@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, int a7, int a8)".
 int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -4763,7 +4133,7 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	int v36; // ecx@28
 	int v37; // eax@29
 	int v38; // eax@33
-	_WORD *v39; // edi@33
+	WORD*v39; // edi@33
 	int v40; // [sp+8h] [bp+8h]@1
 	int v41; // [sp+Ch] [bp+Ch]@1
 
@@ -4775,11 +4145,11 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v40 = *(_WORD *)a8 + a5;
-	v41 = *(_WORD *)(a8 + 2) + a6;
-	v8 = *(_WORD *)(a8 + 4) + 1;
-	v9 = (_WORD *)(a8 + 9);
-	dword_1000E09A = *(_WORD *)(a8 + 6);
+	v40 = *(WORD*)a8 + a5;
+	v41 = *(WORD*)(a8 + 2) + a6;
+	v8 = *(WORD*)(a8 + 4) + 1;
+	v9 = (WORD*)(a8 + 9);
+	dword_1000E09A = *(WORD*)(a8 + 6);
 	dword_1000E064 = v8;
 	result = LOWORD(g_result.screen.top);
 	v11 = v41 - LOWORD(g_result.screen.top);
@@ -4797,7 +4167,7 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		do
 		{
 			LOWORD(result) = *v9;
-			v9 = (_WORD *)((char *)v9 + result + 2);
+			v9 = (WORD*)((char *)v9 + result + 2);
 			--v16;
 		} while (v16);
 	}
@@ -4810,8 +4180,8 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 			dword_1000E09A -= v17,
 			!((unsigned __int8)(v14 ^ v15) | v13)))
 	{
-		v18 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v19 = (unsigned int)(v41 * g_dwWidthInBytes) >> 1;
+		v18 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v19 = (unsigned int)(v41 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v18 + v19 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v18 + (unsigned __int16)g_rcScreenSmallRect.Right + v19 + 1;
 		v20 = v40 + v19 + v18;
@@ -4852,8 +4222,8 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					{
 						if (*v29)
 						{
-							v38 = *(_DWORD *)(a7 + 2 * *v29);
-							v39 = (_WORD *)(2 * v20);
+							v38 = *(DWORD*)(a7 + 2 * *v29);
+							v39 = (WORD*)(2 * v20);
 							while (v36)
 							{
 								*v39 = v38;
@@ -4872,7 +4242,7 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						do
 						{
 							v37 = *v29++;
-							*(_WORD *)(2 * v20++) = *(_DWORD *)(a7 + 2 * v37);
+							*(WORD*)(2 * v20++) = *(DWORD*)(a7 + 2 * v37);
 							--v36;
 						} while (v36);
 						result = dword_1000E06C(v40, v41);
@@ -4925,10 +4295,10 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v9 = (_WORD *)v25;
-			v20 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v9 = (WORD*)v25;
+			v20 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_38:
@@ -4962,7 +4332,7 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 // 1000E418: using guessed type RECT g_result.screen;
 // 1000E428: using guessed type int g_result.offset;
 // 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_dwWidthInBytes;
+// 1000E438: using guessed type int g_result.widthInBytes;
 
 //----- (10005493) --------------------------------------------------------
 // TODO: original signature is "int __usercall sub_10005493@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, int a7, int a8, int a9)".
@@ -4970,7 +4340,7 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 {
 	int v9; // eax@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -5026,11 +4396,11 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v51 = *(_WORD *)a9 + a5;
-	v52 = *(_WORD *)(a9 + 2) + a6;
-	v10 = *(_WORD *)(a9 + 4) + 1;
-	v11 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v51 = *(WORD*)a9 + a5;
+	v52 = *(WORD*)(a9 + 2) + a6;
+	v10 = *(WORD*)(a9 + 4) + 1;
+	v11 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v52 - LOWORD(g_result.screen.top);
@@ -5048,7 +4418,7 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v18;
 		} while (v18);
 	}
@@ -5061,8 +4431,8 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 			dword_1000E09A -= v19,
 			!((unsigned __int8)(v16 ^ v17) | v15)))
 	{
-		v20 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v21 = (unsigned int)(v52 * g_dwWidthInBytes) >> 1;
+		v20 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v21 = (unsigned int)(v52 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v20 + v21 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		v22 = v20 + (unsigned __int16)g_rcScreenSmallRect.Right + v21 + 1;
 		dword_1000E060 = v20 + (unsigned __int16)g_rcScreenSmallRect.Right + v21 + 1;
@@ -5104,12 +4474,12 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 					{
 						if (*v32)
 						{
-							v45 = *(_DWORD *)(a8 + 2 * *v32);
+							v45 = *(DWORD*)(a8 + 2 * *v32);
 							do
 							{
-								LOWORD(v22) = *(_WORD *)(2 * v23);
+								LOWORD(v22) = *(WORD*)(2 * v23);
 								v46 = v22 << 16;
-								LOWORD(v46) = *(_WORD *)(2 * v23);
+								LOWORD(v46) = *(WORD*)(2 * v23);
 								v47 = v45;
 								v48 = dword_1000E084 & ((dword_1000E084 & (unsigned int)v46) * dword_1000E068 >> 5) | ((dword_1000E084 & ((dword_1000E084 & (unsigned int)v46) * dword_1000E068 >> 5)) >> 16);
 								LOWORD(v46) = v45;
@@ -5117,7 +4487,7 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 								LOWORD(v49) = v46;
 								v50 = dword_1000E084 & ((31 - dword_1000E068) * (dword_1000E084 & (unsigned int)v49) >> 5);
 								v22 = v50 | (v50 >> 16);
-								*(_WORD *)(2 * v23) = v48 + v22;
+								*(WORD*)(2 * v23) = v48 + v22;
 								v45 = v47;
 								++v23;
 								--v39;
@@ -5134,16 +4504,16 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 						do
 						{
 							v40 = *v32++;
-							LOWORD(v22) = *(_WORD *)(2 * v23);
+							LOWORD(v22) = *(WORD*)(2 * v23);
 							v41 = v22 << 16;
-							LOWORD(v41) = *(_WORD *)(2 * v23);
+							LOWORD(v41) = *(WORD*)(2 * v23);
 							v42 = dword_1000E084 & ((dword_1000E084 & (unsigned int)v41) * dword_1000E068 >> 5) | ((dword_1000E084 & ((dword_1000E084 & (unsigned int)v41) * dword_1000E068 >> 5)) >> 16);
-							LOWORD(v41) = *(_DWORD *)(a8 + 2 * v40);
-							v43 = *(_DWORD *)(a8 + 2 * v40) << 16;
+							LOWORD(v41) = *(DWORD*)(a8 + 2 * v40);
+							v43 = *(DWORD*)(a8 + 2 * v40) << 16;
 							LOWORD(v43) = v41;
 							v44 = dword_1000E084 & ((31 - dword_1000E068) * (dword_1000E084 & v43) >> 5);
 							v22 = v44 | (v44 >> 16);
-							*(_WORD *)(2 * v23++) = v42 + v22;
+							*(WORD*)(2 * v23++) = v42 + v22;
 							--v39;
 						} while (v39);
 						result = dword_1000E06C(v51, v52);
@@ -5196,10 +4566,10 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v11 = (_WORD *)v28;
-			v23 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v11 = (WORD*)v28;
+			v23 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			v22 = dword_1000E09A-- - 1;
 			if (!dword_1000E09A)
 			{
@@ -5222,7 +4592,7 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -5255,7 +4625,7 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	int v39; // eax@31
 	int v40; // eax@33
 	int v41; // eax@37
-	_WORD *v42; // edi@37
+	WORD*v42; // edi@37
 	int v43; // [sp+8h] [bp+8h]@1
 	int v44; // [sp+Ch] [bp+Ch]@1
 
@@ -5267,11 +4637,11 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v43 = *(_WORD *)a8 + a5;
-	v44 = *(_WORD *)(a8 + 2) + a6;
-	v8 = *(_WORD *)(a8 + 4) + 1;
-	v9 = (_WORD *)(a8 + 9);
-	dword_1000E09A = *(_WORD *)(a8 + 6);
+	v43 = *(WORD*)a8 + a5;
+	v44 = *(WORD*)(a8 + 2) + a6;
+	v8 = *(WORD*)(a8 + 4) + 1;
+	v9 = (WORD*)(a8 + 9);
+	dword_1000E09A = *(WORD*)(a8 + 6);
 	dword_1000E064 = v8;
 	result = LOWORD(g_result.screen.top);
 	v11 = v44 - LOWORD(g_result.screen.top);
@@ -5289,7 +4659,7 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		do
 		{
 			LOWORD(result) = *v9;
-			v9 = (_WORD *)((char *)v9 + result + 2);
+			v9 = (WORD*)((char *)v9 + result + 2);
 			--v15;
 		} while (v15);
 	}
@@ -5302,8 +4672,8 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 			dword_1000E09A -= v16,
 			!((unsigned __int8)(v13 ^ v14) | v35)))
 	{
-		v17 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v18 = (unsigned int)(v44 * g_dwWidthInBytes) >> 1;
+		v17 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v18 = (unsigned int)(v44 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v17 + v18 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v17 + (unsigned __int16)g_rcScreenSmallRect.Right + v18 + 1;
 		v19 = v43 + v18 + v17;
@@ -5351,8 +4721,8 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						}
 						else
 						{
-							v41 = *(_DWORD *)(a7 + 2 * (unsigned __int8)*v28);
-							v42 = (_WORD *)(2 * v19);
+							v41 = *(DWORD*)(a7 + 2 * (unsigned __int8)*v28);
+							v42 = (WORD*)(2 * v19);
 							while (v38)
 							{
 								*v42 = v41;
@@ -5367,7 +4737,7 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						do
 						{
 							v39 = (unsigned __int8)*v28++;
-							*(_WORD *)(2 * v19++) = *(_DWORD *)(a7 + 2 * v39);
+							*(WORD*)(2 * v19++) = *(DWORD*)(a7 + 2 * v39);
 							--v38;
 						} while (v38);
 						result = dword_1000E06C(v43, v44);
@@ -5377,9 +4747,9 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						do
 						{
 							v40 = (unsigned __int8)*v28++;
-							*(_WORD *)(2 * v19) = (*(_DWORD *)(2 * v19)
-								+ *(_DWORD *)(a7 + 2 * v40)
-								- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v19) ^ *(_DWORD *)(a7 + 2 * v40)))) >> 1;
+							*(WORD*)(2 * v19) = (*(DWORD*)(2 * v19)
+								+ *(DWORD*)(a7 + 2 * v40)
+								- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v19) ^ *(DWORD*)(a7 + 2 * v40)))) >> 1;
 							++v19;
 							--v38;
 						} while (v38);
@@ -5435,10 +4805,10 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v9 = (_WORD *)v24;
-			v19 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v9 = (WORD*)v24;
+			v19 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_42:
@@ -5461,7 +4831,7 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 {
 	__int16 v9; // bp@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -5507,11 +4877,11 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
 	v9 = 32 * (a7 + 1088);
-	v45 = *(_WORD *)a9 + a5;
-	v46 = *(_WORD *)(a9 + 2) + a6;
-	v10 = *(_WORD *)(a9 + 4) + 1;
-	v11 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v45 = *(WORD*)a9 + a5;
+	v46 = *(WORD*)(a9 + 2) + a6;
+	v10 = *(WORD*)(a9 + 4) + 1;
+	v11 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v46 - LOWORD(g_result.screen.top);
@@ -5529,7 +4899,7 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v17;
 		} while (v17);
 	}
@@ -5542,8 +4912,8 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v18,
 			!((unsigned __int8)(v15 ^ v16) | v36)))
 	{
-		v19 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v20 = (unsigned int)(v46 * g_dwWidthInBytes) >> 1;
+		v19 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v20 = (unsigned int)(v46 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v19 + v20 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v19 + (unsigned __int16)g_rcScreenSmallRect.Right + v20 + 1;
 		v21 = v45 + v20 + v19;
@@ -5591,11 +4961,11 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						}
 						else
 						{
-							v44 = *(_DWORD *)(a8 + 2 * (unsigned __int8)*v29);
+							v44 = *(DWORD*)(a8 + 2 * (unsigned __int8)*v29);
 							do
 							{
-								*(_WORD *)(2 * v21 + 0x96524) = v9;
-								*(_WORD *)(2 * v21++) = v44;
+								*(WORD*)(2 * v21 + 0x96524) = v9;
+								*(WORD*)(2 * v21++) = v44;
 								--v39;
 							} while (v39);
 							result = dword_1000E06C(v45, v46);
@@ -5606,9 +4976,9 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						do
 						{
 							v40 = (unsigned __int8)*v29++;
-							v41 = *(_DWORD *)(a8 + 2 * v40);
-							*(_WORD *)(2 * v21 + 0x96524) = v9;
-							*(_WORD *)(2 * v21++) = v41;
+							v41 = *(DWORD*)(a8 + 2 * v40);
+							*(WORD*)(2 * v21 + 0x96524) = v9;
+							*(WORD*)(2 * v21++) = v41;
 							--v39;
 						} while (v39);
 						result = dword_1000E06C(v45, v46);
@@ -5618,11 +4988,11 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						do
 						{
 							v42 = (unsigned __int8)*v29++;
-							v43 = *(_DWORD *)(2 * v21)
-								+ *(_DWORD *)(a8 + 2 * v42)
-								- (dword_1000E460 & (*(_DWORD *)(2 * v21) ^ *(_DWORD *)(a8 + 2 * v42)));
-							*(_WORD *)(2 * v21 + 0x96524) = v9;
-							*(_WORD *)(2 * v21++) = v43 >> 1;
+							v43 = *(DWORD*)(2 * v21)
+								+ *(DWORD*)(a8 + 2 * v42)
+								- (dword_1000E460 & (*(DWORD*)(2 * v21) ^ *(DWORD*)(a8 + 2 * v42)));
+							*(WORD*)(2 * v21 + 0x96524) = v9;
+							*(WORD*)(2 * v21++) = v43 >> 1;
 							--v39;
 						} while (v39);
 						result = dword_1000E06C(v45, v46);
@@ -5677,10 +5047,10 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v11 = (_WORD *)dword_1000E080;
-			v21 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v11 = (WORD*)dword_1000E080;
+			v21 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_41:
@@ -5703,7 +5073,7 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 {
 	int v9; // ebp@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -5749,11 +5119,11 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v9 = a2 << 16;
 	LOWORD(v9) = 32 * (a7 + 1088);
-	v43 = *(_WORD *)a9 + a5;
-	v44 = *(_WORD *)(a9 + 2) + a6;
-	v10 = *(_WORD *)(a9 + 4) + 1;
-	v11 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v43 = *(WORD*)a9 + a5;
+	v44 = *(WORD*)(a9 + 2) + a6;
+	v10 = *(WORD*)(a9 + 4) + 1;
+	v11 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v44 - LOWORD(g_result.screen.top);
@@ -5771,7 +5141,7 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v18;
 		} while (v18);
 	}
@@ -5784,8 +5154,8 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v19,
 			!((unsigned __int8)(v16 ^ v17) | v15)))
 	{
-		v20 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v21 = (unsigned int)(v44 * g_dwWidthInBytes) >> 1;
+		v20 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v21 = (unsigned int)(v44 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v20 + v21 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v20 + (unsigned __int16)g_rcScreenSmallRect.Right + v21 + 1;
 		v22 = v43 + v21 + v20;
@@ -5826,14 +5196,14 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						if (*v30)
 						{
-							v41 = *(_DWORD *)(a8 + 2 * *v30);
+							v41 = *(DWORD*)(a8 + 2 * *v30);
 							do
 							{
-								v42 = v9 | *(_DWORD *)(2 * v22 + 0x96524) & 3;
-								*(_WORD *)(2 * v22 + 0x96524) = v42;
+								v42 = v9 | *(DWORD*)(2 * v22 + 0x96524) & 3;
+								*(WORD*)(2 * v22 + 0x96524) = v42;
 								if (v42 & 2)
 									v41 = dword_1000E480 + ((dword_1000E468 & v41) >> 1);
-								*(_WORD *)(2 * v22++) = v41;
+								*(WORD*)(2 * v22++) = v41;
 								--v37;
 							} while (v37);
 							result = dword_1000E06C(v43, v44);
@@ -5848,12 +5218,12 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						do
 						{
 							v38 = *v30++;
-							v39 = *(_DWORD *)(a8 + 2 * v38);
-							v40 = v9 | *(_DWORD *)(2 * v22 + 0x96524) & 3;
-							*(_WORD *)(2 * v22 + 0x96524) = v40;
+							v39 = *(DWORD*)(a8 + 2 * v38);
+							v40 = v9 | *(DWORD*)(2 * v22 + 0x96524) & 3;
+							*(WORD*)(2 * v22 + 0x96524) = v40;
 							if (v40 & 2)
 								LOWORD(v39) = dword_1000E480 + ((dword_1000E468 & v39) >> 1);
-							*(_WORD *)(2 * v22++) = v39;
+							*(WORD*)(2 * v22++) = v39;
 							--v37;
 						} while (v37);
 						result = dword_1000E06C(v43, v44);
@@ -5906,10 +5276,10 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v11 = (_WORD *)dword_1000E080;
-			v22 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v11 = (WORD*)dword_1000E080;
+			v22 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_41:
@@ -5931,7 +5301,7 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -5964,7 +5334,7 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	int v39; // eax@31
 	int v40; // eax@33
 	int v41; // eax@37
-	_WORD *v42; // edi@37
+	WORD*v42; // edi@37
 	int v43; // [sp+8h] [bp+8h]@1
 	int v44; // [sp+Ch] [bp+Ch]@1
 
@@ -5976,11 +5346,11 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v43 = *(_WORD *)a8 + a5;
-	v44 = *(_WORD *)(a8 + 2) + a6;
-	v8 = *(_WORD *)(a8 + 4) + 1;
-	v9 = (_WORD *)(a8 + 9);
-	dword_1000E09A = *(_WORD *)(a8 + 6);
+	v43 = *(WORD*)a8 + a5;
+	v44 = *(WORD*)(a8 + 2) + a6;
+	v8 = *(WORD*)(a8 + 4) + 1;
+	v9 = (WORD*)(a8 + 9);
+	dword_1000E09A = *(WORD*)(a8 + 6);
 	dword_1000E064 = v8;
 	result = LOWORD(g_result.screen.top);
 	v11 = v44 - LOWORD(g_result.screen.top);
@@ -5998,7 +5368,7 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		do
 		{
 			LOWORD(result) = *v9;
-			v9 = (_WORD *)((char *)v9 + result + 2);
+			v9 = (WORD*)((char *)v9 + result + 2);
 			--v15;
 		} while (v15);
 	}
@@ -6011,8 +5381,8 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 			dword_1000E09A -= v16,
 			!((unsigned __int8)(v13 ^ v14) | v35)))
 	{
-		v17 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v18 = (unsigned int)(v44 * g_dwWidthInBytes) >> 1;
+		v17 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v18 = (unsigned int)(v44 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v17 + v18 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v17 + (unsigned __int16)g_rcScreenSmallRect.Right + v18 + 1;
 		v19 = v43 + v18 + v17;
@@ -6060,8 +5430,8 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						}
 						else
 						{
-							v41 = *(_DWORD *)(a7 + 2 * (unsigned __int8)*v28);
-							v42 = (_WORD *)(2 * v19);
+							v41 = *(DWORD*)(a7 + 2 * (unsigned __int8)*v28);
+							v42 = (WORD*)(2 * v19);
 							while (v38)
 							{
 								*v42 = v41;
@@ -6076,7 +5446,7 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						do
 						{
 							v39 = (unsigned __int8)*v28++;
-							*(_WORD *)(2 * v19++) = *(_DWORD *)(a7 + 2 * v39);
+							*(WORD*)(2 * v19++) = *(DWORD*)(a7 + 2 * v39);
 							--v38;
 						} while (v38);
 						result = dword_1000E06C(v43, v44);
@@ -6086,9 +5456,9 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 						do
 						{
 							v40 = (unsigned __int8)*v28++;
-							*(_WORD *)(2 * v19) = (*(_DWORD *)(2 * v19)
-								+ *(_DWORD *)(a7 + 2 * v40)
-								- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v19) ^ *(_DWORD *)(a7 + 2 * v40)))) >> 1;
+							*(WORD*)(2 * v19) = (*(DWORD*)(2 * v19)
+								+ *(DWORD*)(a7 + 2 * v40)
+								- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v19) ^ *(DWORD*)(a7 + 2 * v40)))) >> 1;
 							++v19;
 							--v38;
 						} while (v38);
@@ -6144,10 +5514,10 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v9 = (_WORD *)v24;
-			v19 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v9 = (WORD*)v24;
+			v19 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_42:
@@ -6169,7 +5539,7 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 {
 	int v7; // edx@1
-	_WORD *v8; // esi@1
+	WORD*v8; // esi@1
 	int result; // eax@1
 	int v10; // edx@1
 	int v11; // edx@2
@@ -6199,7 +5569,7 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	int v35; // ecx@28
 	int v36; // eax@29
 	int v37; // eax@31
-	_WORD *v38; // edi@33
+	WORD*v38; // edi@33
 	int v39; // [sp+8h] [bp+8h]@1
 	int v40; // [sp+Ch] [bp+Ch]@1
 
@@ -6211,11 +5581,11 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	g_rcScreenSmallRect.Right = g_result.screen.right;
 	g_rcScreenSmallRect.Top = g_result.screen.top;
 	g_rcScreenSmallRect.Bottom = g_result.screen.bottom;
-	v39 = *(_WORD *)a7 + a5;
-	v40 = *(_WORD *)(a7 + 2) + a6;
-	v7 = *(_WORD *)(a7 + 4) + 1;
-	v8 = (_WORD *)(a7 + 9);
-	dword_1000E09A = *(_WORD *)(a7 + 6);
+	v39 = *(WORD*)a7 + a5;
+	v40 = *(WORD*)(a7 + 2) + a6;
+	v7 = *(WORD*)(a7 + 4) + 1;
+	v8 = (WORD*)(a7 + 9);
+	dword_1000E09A = *(WORD*)(a7 + 6);
 	dword_1000E064 = v7;
 	result = LOWORD(g_result.screen.top);
 	v10 = v40 - LOWORD(g_result.screen.top);
@@ -6233,7 +5603,7 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		do
 		{
 			LOWORD(result) = *v8;
-			v8 = (_WORD *)((char *)v8 + result + 2);
+			v8 = (WORD*)((char *)v8 + result + 2);
 			--v15;
 		} while (v15);
 	}
@@ -6246,8 +5616,8 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 			dword_1000E09A -= v16,
 			!((unsigned __int8)(v13 ^ v14) | v12)))
 	{
-		v17 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v18 = (unsigned int)(v40 * g_dwWidthInBytes) >> 1;
+		v17 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v18 = (unsigned int)(v40 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v17 + v18 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v17 + (unsigned __int16)g_rcScreenSmallRect.Right + v18 + 1;
 		v19 = v39 + v18 + v17;
@@ -6286,14 +5656,14 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 					v35 = v34 - v19;
 					if (v13)
 					{
-						v37 = *(_DWORD *)v28;
-						if ((unsigned __int16)*(_DWORD *)v28 == -2017)
+						v37 = *(DWORD*)v28;
+						if ((unsigned __int16)*(DWORD*)v28 == -2017)
 						{
 							result = dword_1000E06C(v39, v40);
 						}
 						else
 						{
-							v38 = (_WORD *)(2 * v19);
+							v38 = (WORD*)(2 * v19);
 							while (v35)
 							{
 								*v38 = v37;
@@ -6307,9 +5677,9 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 					{
 						do
 						{
-							v36 = *(_DWORD *)v28;
+							v36 = *(DWORD*)v28;
 							v28 += 2;
-							*(_WORD *)(2 * v19++) = v36;
+							*(WORD*)(2 * v19++) = v36;
 							--v35;
 						} while (v35);
 						result = dword_1000E06C(v39, v40);
@@ -6362,10 +5732,10 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v8 = (_WORD *)v24;
-			v19 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v8 = (WORD*)v24;
+			v19 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_38:
@@ -6389,7 +5759,7 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	int v9; // eax@1
 	unsigned int v10; // ebp@1
 	int v11; // edx@1
-	_WORD *v12; // esi@1
+	WORD*v12; // esi@1
 	int result; // eax@1
 	int v14; // edx@1
 	int v15; // edx@2
@@ -6444,11 +5814,11 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v10 = a2 << 16;
 	LOWORD(v10) = 32 * (a7 + 1088);
-	v49 = *(_WORD *)a9 + a5;
-	v50 = *(_WORD *)(a9 + 2) + a6;
-	v11 = *(_WORD *)(a9 + 4) + 1;
-	v12 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v49 = *(WORD*)a9 + a5;
+	v50 = *(WORD*)(a9 + 2) + a6;
+	v11 = *(WORD*)(a9 + 4) + 1;
+	v12 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v11;
 	result = LOWORD(g_result.screen.top);
 	v14 = v50 - LOWORD(g_result.screen.top);
@@ -6466,7 +5836,7 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v12;
-			v12 = (_WORD *)((char *)v12 + result + 2);
+			v12 = (WORD*)((char *)v12 + result + 2);
 			--v19;
 		} while (v19);
 	}
@@ -6479,8 +5849,8 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v20,
 			!((unsigned __int8)(v17 ^ v18) | v16)))
 	{
-		v21 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v22 = (unsigned int)(v50 * g_dwWidthInBytes) >> 1;
+		v21 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v22 = (unsigned int)(v50 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v21 + v22 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		v23 = v21 + (unsigned __int16)g_rcScreenSmallRect.Right + v22 + 1;
 		dword_1000E060 = v21 + (unsigned __int16)g_rcScreenSmallRect.Right + v22 + 1;
@@ -6522,21 +5892,21 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						if (*v32)
 						{
-							v44 = *(_DWORD *)(a8 + 4 * *v32);
+							v44 = *(DWORD*)(a8 + 4 * *v32);
 							do
 							{
-								while (*(_DWORD *)(2 * v24 + 0x12CA46) < v10)
+								while (*(DWORD*)(2 * v24 + 0x12CA46) < v10)
 								{
-									LOWORD(v23) = *(_WORD *)(2 * v24);
+									LOWORD(v23) = *(WORD*)(2 * v24);
 									v45 = v23 << 16;
-									LOWORD(v45) = *(_WORD *)(2 * v24);
+									LOWORD(v45) = *(WORD*)(2 * v24);
 									v23 = dword_1000E084 & v45;
 									v48 = v44;
 									v46 = v44 >> 19;
 									if ((_BYTE)v46 != 31)
 									{
 										v23 = dword_1000E084 & (v23 * v46 >> 5) | ((dword_1000E084 & (v23 * v46 >> 5)) >> 16);
-										*(_WORD *)(2 * v24) = v48 + v23;
+										*(WORD*)(2 * v24) = v48 + v23;
 									}
 									v44 = v48;
 									++v24;
@@ -6557,20 +5927,20 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while (*(_DWORD *)(2 * v24 + 0x12CA46) < v10)
+							while (*(DWORD*)(2 * v24 + 0x12CA46) < v10)
 							{
 								v40 = *v32++;
-								v41 = *(_DWORD *)(a8 + 4 * v40);
-								LOWORD(v23) = *(_WORD *)(2 * v24);
+								v41 = *(DWORD*)(a8 + 4 * v40);
+								LOWORD(v23) = *(WORD*)(2 * v24);
 								v42 = v23 << 16;
-								LOWORD(v42) = *(_WORD *)(2 * v24);
+								LOWORD(v42) = *(WORD*)(2 * v24);
 								v23 = dword_1000E084 & v42;
 								v47 = v41;
 								v43 = v41 >> 19;
 								if ((_BYTE)v43 != 31)
 								{
 									v23 = dword_1000E084 & (v23 * v43 >> 5) | ((dword_1000E084 & (v23 * v43 >> 5)) >> 16);
-									*(_WORD *)(2 * v24) = v47 + v23;
+									*(WORD*)(2 * v24) = v47 + v23;
 								}
 								++v24;
 								if (!--v39)
@@ -6630,10 +6000,10 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v12 = (_WORD *)dword_1000E080;
-			v24 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v12 = (WORD*)dword_1000E080;
+			v24 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			v23 = dword_1000E09A-- - 1;
 			if (!dword_1000E09A)
 			{
@@ -6738,8 +6108,8 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v18,
 			!((unsigned __int8)(v15 ^ v16) | v36)))
 	{
-		v19 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v20 = (unsigned int)(v44 * g_dwWidthInBytes) >> 1;
+		v19 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v20 = (unsigned int)(v44 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v19 + v20 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v19 + (unsigned __int16)g_rcScreenSmallRect.Right + v20 + 1;
 		v21 = v43 + v20 + v19;
@@ -6790,7 +6160,7 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 							v42 = *(DWORD *)(a8 + 2 * (unsigned __int8)*v29);
 							do
 							{
-								while (*(_DWORD *)(2 * v21 + 0x12CA46) < v9)
+								while (*(DWORD*)(2 * v21 + 0x12CA46) < v9)
 								{
 									*(WORD *)(2 * v21++) = v42;
 									if (!--v39)
@@ -6809,7 +6179,7 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 							while (*(DWORD *)(2 * v21 + 0x12CA46) < v9)
 							{
 								v40 = (unsigned __int8)*v29++;
-								*(WORD *)(2 * v21++) = *(_DWORD *)(a8 + 2 * v40);
+								*(WORD *)(2 * v21++) = *(DWORD*)(a8 + 2 * v40);
 								if (!--v39)
 									return dword_1000E06C(v43, v44);
 							}
@@ -6826,7 +6196,7 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 							while (*(DWORD *)(2 * v21 + 0x12CA46) < v9)
 							{
 								v41 = (unsigned __int8)*v29++;
-								*(WORD *)(2 * v21) = (*(_DWORD *)(2 * v21)
+								*(WORD *)(2 * v21) = (*(DWORD*)(2 * v21)
 									+ *(DWORD *)(a8 + 2 * v41)
 									- (dword_1000E460 & (unsigned int)(*(DWORD *)(2 * v21) ^ *(DWORD *)(a8 + 2 * v41)))) >> 1;
 								++v21;
@@ -6889,10 +6259,10 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
 			v11 = (WORD *)dword_1000E080;
-			v21 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			v21 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_50:
@@ -6915,7 +6285,7 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 {
 	unsigned int v9; // ebp@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -6961,12 +6331,12 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v9 = a2 << 16;
 	LOWORD(v9) = 32 * (a7 + 1088);
-	v43 = *(_WORD *)a9 + a5;
-	v44 = *(_WORD *)(a9 + 2) + a6;
+	v43 = *(WORD*)a9 + a5;
+	v44 = *(WORD*)(a9 + 2) + a6;
 	dword_1000E054 = v44;
-	v10 = *(_WORD *)(a9 + 4) + 1;
-	v11 = (_WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	v10 = *(WORD*)(a9 + 4) + 1;
+	v11 = (WORD*)(a9 + 9);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v44 - LOWORD(g_result.screen.top);
@@ -6985,7 +6355,7 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v17;
 		} while (v17);
 	}
@@ -6999,8 +6369,8 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v18,
 			!((unsigned __int8)(v15 ^ v16) | v36)))
 	{
-		v19 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v20 = (unsigned int)(v44 * g_dwWidthInBytes) >> 1;
+		v19 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v20 = (unsigned int)(v44 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v19 + v20 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v19 + (unsigned __int16)g_rcScreenSmallRect.Right + v20 + 1;
 		v21 = v43 + v20 + v19;
@@ -7049,12 +6419,12 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 						}
 						else
 						{
-							v42 = *(_DWORD *)(a8 + 2 * (unsigned __int8)*v29);
+							v42 = *(DWORD*)(a8 + 2 * (unsigned __int8)*v29);
 							do
 							{
-								while ((v21 ^ dword_1000E054) & 1 || *(_DWORD *)(2 * v21 + 0x12CA46) < v9)
+								while ((v21 ^ dword_1000E054) & 1 || *(DWORD*)(2 * v21 + 0x12CA46) < v9)
 								{
-									*(_WORD *)(2 * v21++) = v42;
+									*(WORD*)(2 * v21++) = v42;
 									if (!--v39)
 										return dword_1000E06C(v43, v44);
 								}
@@ -7068,10 +6438,10 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while ((v21 ^ dword_1000E054) & 1 || *(_DWORD *)(2 * v21 + 0x12CA46) < v9)
+							while ((v21 ^ dword_1000E054) & 1 || *(DWORD*)(2 * v21 + 0x12CA46) < v9)
 							{
 								v40 = (unsigned __int8)*v29++;
-								*(_WORD *)(2 * v21++) = *(_DWORD *)(a8 + 2 * v40);
+								*(WORD*)(2 * v21++) = *(DWORD*)(a8 + 2 * v40);
 								if (!--v39)
 									return dword_1000E06C(v43, v44);
 							}
@@ -7085,12 +6455,12 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while ((v21 ^ dword_1000E054) & 1 || *(_DWORD *)(2 * v21 + 0x12CA46) < v9)
+							while ((v21 ^ dword_1000E054) & 1 || *(DWORD*)(2 * v21 + 0x12CA46) < v9)
 							{
 								v41 = (unsigned __int8)*v29++;
-								*(_WORD *)(2 * v21) = (*(_DWORD *)(2 * v21)
-									+ *(_DWORD *)(a8 + 2 * v41)
-									- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v21) ^ *(_DWORD *)(a8 + 2 * v41)))) >> 1;
+								*(WORD*)(2 * v21) = (*(DWORD*)(2 * v21)
+									+ *(DWORD*)(a8 + 2 * v41)
+									- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v21) ^ *(DWORD*)(a8 + 2 * v41)))) >> 1;
 								++v21;
 								if (!--v39)
 									return dword_1000E06C(v43, v44);
@@ -7151,10 +6521,10 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v11 = (_WORD *)dword_1000E080;
-			v21 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v11 = (WORD*)dword_1000E080;
+			v21 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_53:
@@ -7176,7 +6546,7 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 int sub_100073B2(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -7247,8 +6617,8 @@ int sub_100073B2(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 			dword_1000E09A -= v17,
 			!((unsigned __int8)(v14 ^ v15) | v13)))
 	{
-		v18 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v19 = (unsigned int)(v35 * g_dwWidthInBytes) >> 1;
+		v18 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v19 = (unsigned int)(v35 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v18 + v19 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v18 + (unsigned __int16)g_rcScreenSmallRect.Right + v19 + 1;
 		v20 = v34 + v19 + v18;
@@ -7331,10 +6701,10 @@ int sub_100073B2(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
 			v9 = (WORD *)v25;
-			v20 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			v20 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_31:
@@ -7427,8 +6797,8 @@ int sub_10007678(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 			dword_1000E09A -= v17,
 			!((unsigned __int8)(v14 ^ v15) | v13)))
 	{
-		v18 = ((unsigned int)g_aBufferSecondary16 + g_result.offset) >> 1;
-		v19 = (unsigned int)(v35 * g_dwWidthInBytes) >> 1;
+		v18 = ((unsigned int)g_result.a_buffer2 + g_result.offset) >> 1;
+		v19 = (unsigned int)(v35 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v18 + v19 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v18 + (unsigned __int16)g_rcScreenSmallRect.Right + v19 + 1;
 		v20 = v34 + v19 + v18;
@@ -7472,12 +6842,12 @@ int sub_10007678(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					{
 						do
 						{
-							v32 = *(_DWORD *)(2 * v20 + 0x96524);
+							v32 = *(DWORD*)(2 * v20 + 0x96524);
 							if (!(v32 & 0x8007))
 							{
-								v33 = dword_1000E480 + (((unsigned int)dword_1000E468 & *(_DWORD *)(2 * v20)) >> 1);
-								*(_DWORD *)(2 * v20 + 0x96524) = a7 | v32;
-								*(_WORD *)(2 * v20) = v33;
+								v33 = dword_1000E480 + (((unsigned int)dword_1000E468 & *(DWORD*)(2 * v20)) >> 1);
+								*(DWORD*)(2 * v20 + 0x96524) = a7 | v32;
+								*(WORD*)(2 * v20) = v33;
 							}
 							++v20;
 							--v31;
@@ -7511,10 +6881,10 @@ int sub_10007678(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
 			v9 = (WORD *)v25;
-			v20 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			v20 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_31:
@@ -7538,7 +6908,7 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	int v8; // eax@1
 	unsigned int v9; // ebp@1
 	int v10; // edx@1
-	_WORD *v11; // esi@1
+	WORD*v11; // esi@1
 	int result; // eax@1
 	int v13; // edx@1
 	int v14; // edx@2
@@ -7590,11 +6960,11 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	LOWORD(a2) = 32 * (a7 + 1088);
 	v9 = a2 << 16;
 	LOWORD(v9) = 32 * (a7 + 1088);
-	v45 = *(_WORD *)a8 + a5;
-	v46 = *(_WORD *)(a8 + 2) + a6;
-	v10 = *(_WORD *)(a8 + 4) + 1;
-	v11 = (_WORD *)(a8 + 9);
-	dword_1000E09A = *(_WORD *)(a8 + 6);
+	v45 = *(WORD*)a8 + a5;
+	v46 = *(WORD*)(a8 + 2) + a6;
+	v10 = *(WORD*)(a8 + 4) + 1;
+	v11 = (WORD*)(a8 + 9);
+	dword_1000E09A = *(WORD*)(a8 + 6);
 	dword_1000E064 = v10;
 	result = LOWORD(g_result.screen.top);
 	v13 = v46 - LOWORD(g_result.screen.top);
@@ -7612,7 +6982,7 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v11;
-			v11 = (_WORD *)((char *)v11 + result + 2);
+			v11 = (WORD*)((char *)v11 + result + 2);
 			--v18;
 		} while (v18);
 	}
@@ -7625,8 +6995,8 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v19,
 			!((unsigned __int8)(v16 ^ v17) | v15)))
 	{
-		v20 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v21 = (unsigned int)(v46 * g_dwWidthInBytes) >> 1;
+		v20 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v21 = (unsigned int)(v46 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v20 + v21 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v20 + (unsigned __int16)g_rcScreenSmallRect.Right + v21 + 1;
 		v22 = v45 + v21 + v20;
@@ -7671,13 +7041,13 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 							v41 = (unsigned __int8)v41;
 							do
 							{
-								while (*(_DWORD *)(2 * v22 + 0x12CA46) < v9)
+								while (*(DWORD*)(2 * v22 + 0x12CA46) < v9)
 								{
-									v42 = dword_1000E084 & ((*(_WORD *)(2 * v22) << 16) | *(_WORD *)(2 * v22));
+									v42 = dword_1000E084 & ((*(WORD*)(2 * v22) << 16) | *(WORD*)(2 * v22));
 									v43 = v41;
 									LOBYTE(v41) = v41 & 0x1F;
 									v44 = dword_1000E084 & (((dword_1000E084 - (dword_1000E088 & ((unsigned int)(v42 * v41) >> 4))) >> 5) | dword_1000E088 & ((unsigned int)(v42 * v41) >> 4));
-									*(_WORD *)(2 * v22++) = HIWORD(v44) | v44;
+									*(WORD*)(2 * v22++) = HIWORD(v44) | v44;
 									v41 = v43;
 									if (!--v37)
 										return dword_1000E06C(v45, v46);
@@ -7696,12 +7066,12 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while (*(_DWORD *)(2 * v22 + 0x12CA46) < v9)
+							while (*(DWORD*)(2 * v22 + 0x12CA46) < v9)
 							{
 								v38 = *v30++;
-								v39 = dword_1000E084 & ((*(_WORD *)(2 * v22) << 16) | *(_WORD *)(2 * v22));
+								v39 = dword_1000E084 & ((*(WORD*)(2 * v22) << 16) | *(WORD*)(2 * v22));
 								v40 = dword_1000E084 & (((dword_1000E084 - (dword_1000E088 & (v39 * (v38 & 0x1Fu) >> 4))) >> 5) | dword_1000E088 & (v39 * (v38 & 0x1Fu) >> 4));
-								*(_WORD *)(2 * v22++) = HIWORD(v40) | v40;
+								*(WORD*)(2 * v22++) = HIWORD(v40) | v40;
 								if (!--v37)
 									return dword_1000E06C(v45, v46);
 							}
@@ -7759,10 +7129,10 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
 			v11 = (WORD *)dword_1000E080;
-			v22 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			v22 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_43:
@@ -7786,7 +7156,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	int v9; // eax@1
 	unsigned int v10; // ebp@1
 	int v11; // edx@1
-	_WORD *v12; // esi@1
+	WORD*v12; // esi@1
 	int result; // eax@1
 	int v14; // edx@1
 	int v15; // edx@2
@@ -7845,7 +7215,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	v50 = *(WORD *)(a9 + 2) + a6;
 	v11 = *(WORD *)(a9 + 4) + 1;
 	v12 = (WORD *)(a9 + 9);
-	dword_1000E09A = *(_WORD *)(a9 + 6);
+	dword_1000E09A = *(WORD*)(a9 + 6);
 	dword_1000E064 = v11;
 	result = LOWORD(g_result.screen.top);
 	v14 = v50 - LOWORD(g_result.screen.top);
@@ -7863,7 +7233,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		do
 		{
 			LOWORD(result) = *v12;
-			v12 = (_WORD *)((char *)v12 + result + 2);
+			v12 = (WORD*)((char *)v12 + result + 2);
 			--v19;
 		} while (v19);
 	}
@@ -7876,8 +7246,8 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 			dword_1000E09A -= v20,
 			!((unsigned __int8)(v17 ^ v18) | v16)))
 	{
-		v21 = ((unsigned int)g_aBufferPrimary16 + g_result.offset) >> 1;
-		v22 = (unsigned int)(v50 * g_dwWidthInBytes) >> 1;
+		v21 = ((unsigned int)g_result.a_buffer1 + g_result.offset) >> 1;
+		v22 = (unsigned int)(v50 * g_result.widthInBytes) >> 1;
 		dword_1000E05C = v21 + v22 + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = v21 + (unsigned __int16)g_rcScreenSmallRect.Right + v22 + 1;
 		v23 = v49 + v22 + v21;
@@ -7935,7 +7305,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 										v47 |= g_result.greenMask;
 									if (v46 & (unsigned __int16)g_result.blueMask)
 										v47 |= g_result.blueMask;
-									*(_WORD *)(2 * v23++) = v47;
+									*(WORD*)(2 * v23++) = v47;
 									v44 = v48;
 									if (!--v38)
 										return dword_1000E06C(v49, v50);
@@ -7954,12 +7324,12 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					{
 						do
 						{
-							while (*(_DWORD *)(2 * v23 + 0x12CA46) < v10)
+							while (*(DWORD*)(2 * v23 + 0x12CA46) < v10)
 							{
 								v39 = *v31++;
-								v40 = (unsigned __int16)*(_DWORD *)(a8 + 2 * v39);
-								v41 = (unsigned __int16)v40 + *(_WORD *)(2 * v23);
-								LOWORD(v40) = *(_WORD *)(2 * v23) ^ v40;
+								v40 = (unsigned __int16)*(DWORD*)(a8 + 2 * v39);
+								v41 = (unsigned __int16)v40 + *(WORD*)(2 * v23);
+								LOWORD(v40) = *(WORD*)(2 * v23) ^ v40;
 								v42 = dword_1000E464 & ((v41 ^ v40) >> 1);
 								v43 = v41 - v42;
 								if (v42 & (unsigned __int16)g_result.redMask)
@@ -7968,7 +7338,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 									v43 |= g_result.greenMask;
 								if (v42 & (unsigned __int16)g_result.blueMask)
 									v43 |= g_result.blueMask;
-								*(_WORD *)(2 * v23++) = v43;
+								*(WORD*)(2 * v23++) = v43;
 								if (!--v38)
 									return dword_1000E06C(v49, v50);
 							}
@@ -8026,10 +7396,10 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 					}
 				}
 			}
-			dword_1000E05C += (unsigned int)g_dwWidthInBytes >> 1;
-			dword_1000E060 += (unsigned int)g_dwWidthInBytes >> 1;
-			v12 = (_WORD *)dword_1000E080;
-			v23 = ((unsigned int)g_dwWidthInBytes >> 1) + dword_1000E07C;
+			dword_1000E05C += (unsigned int)g_result.widthInBytes >> 1;
+			dword_1000E060 += (unsigned int)g_result.widthInBytes >> 1;
+			v12 = (WORD*)dword_1000E080;
+			v23 = ((unsigned int)g_result.widthInBytes >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
 			LABEL_55:
@@ -8066,7 +7436,7 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 // 1000E418: using guessed type RECT g_result.screen;
 // 1000E428: using guessed type int g_result.offset;
 // 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_dwWidthInBytes;
+// 1000E438: using guessed type int g_result.widthInBytes;
 // 1000E44C: using guessed type int g_result.redMask;
 // 1000E450: using guessed type int g_result.greenMask;
 // 1000E454: using guessed type int g_result.blueMask;
@@ -8119,11 +7489,11 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v35; // ecx@32
 	int v36; // eax@33
 	int v37; // eax@37
-	_WORD *v38; // edi@37
+	WORD*v38; // edi@37
 	int v39; // eax@44
 	int v40; // ebx@44
 	int v41; // edx@44
-	_WORD *v42; // esi@44
+	WORD*v42; // esi@44
 	int v43; // edx@44
 	int v44; // edx@45
 	int v45; // ecx@46
@@ -8155,7 +7525,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	unsigned int v71; // eax@79
 	int v72; // ebx@86
 	int v73; // edx@86
-	_WORD *v74; // esi@86
+	WORD*v74; // esi@86
 	int v75; // edx@86
 	int v76; // edx@87
 	int v77; // ecx@88
@@ -8183,9 +7553,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v99; // eax@116
 	int v100; // eax@118
 	int v101; // eax@122
-	_WORD *v102; // edi@122
+	WORD*v102; // edi@122
 	int v103; // edx@129
-	_WORD *v104; // esi@129
+	WORD*v104; // esi@129
 	int v105; // edx@129
 	int v106; // edx@130
 	int v107; // ecx@131
@@ -8215,15 +7585,15 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v131; // [sp+Ch] [bp+Ch]@86
 	int v132; // [sp+Ch] [bp+Ch]@129
 
-	v6 = *(_DWORD *)(a2 + 24);
-	dword_1000E0B6 = *(_DWORD *)v6;
-	dword_1000E0BA = 2 * *(_DWORD *)(v6 + 4);
-	dword_1000E0BE = *(_DWORD *)(v6 + 8);
-	dword_1000E0C2 = *(_DWORD *)(v6 + 12);
-	dword_1000E0C6 = *(_DWORD *)(v6 + 16);
-	dword_1000E0CA = *(_DWORD *)(v6 + 20);
-	dword_1000E0CE = *(_DWORD *)(a2 + 20);
-	dword_1000E0D2 = *(_DWORD *)(a2 + 16);
+	v6 = *(DWORD*)(a2 + 24);
+	dword_1000E0B6 = *(DWORD*)v6;
+	dword_1000E0BA = 2 * *(DWORD*)(v6 + 4);
+	dword_1000E0BE = *(DWORD*)(v6 + 8);
+	dword_1000E0C2 = *(DWORD*)(v6 + 12);
+	dword_1000E0C6 = *(DWORD*)(v6 + 16);
+	dword_1000E0CA = *(DWORD*)(v6 + 20);
+	dword_1000E0CE = *(DWORD*)(a2 + 20);
+	dword_1000E0D2 = *(DWORD*)(a2 + 16);
 	v7 = *(_BYTE *)(dword_1000E0D2 + 8);
 	if (v7 == -95)
 	{
@@ -8237,11 +7607,11 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_rcScreenSmallRect.Right = dword_1000E0C6;
 		g_rcScreenSmallRect.Top = dword_1000E0C2;
 		g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-		v125 = *(_WORD *)dword_1000E0D2 + a5;
-		v129 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-		v9 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-		v10 = (_WORD *)(dword_1000E0D2 + 9);
-		dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+		v125 = *(WORD*)dword_1000E0D2 + a5;
+		v129 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+		v9 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+		v10 = (WORD*)(dword_1000E0D2 + 9);
+		dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 		dword_1000E064 = v9;
 		result = (unsigned __int16)dword_1000E0C2;
 		v12 = v129 - (unsigned __int16)dword_1000E0C2;
@@ -8259,7 +7629,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			do
 			{
 				LOWORD(result) = *v10;
-				v10 = (_WORD *)((char *)v10 + result + 2);
+				v10 = (WORD*)((char *)v10 + result + 2);
 				--v16;
 			} while (v16);
 		}
@@ -8313,8 +7683,8 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						{
 							if (*v28)
 							{
-								v37 = *(_DWORD *)(dword_1000E0CE + 2 * *v28);
-								v38 = (_WORD *)(2 * v19);
+								v37 = *(DWORD*)(dword_1000E0CE + 2 * *v28);
+								v38 = (WORD*)(2 * v19);
 								while (v35)
 								{
 									*v38 = v37;
@@ -8333,7 +7703,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 							do
 							{
 								v36 = *v28++;
-								*(_WORD *)(2 * v19++) = *(_DWORD *)(v8 + 2 * v36);
+								*(WORD*)(2 * v19++) = *(DWORD*)(v8 + 2 * v36);
 								--v35;
 							} while (v35);
 							result = dword_1000E06C(v125, v129);
@@ -8388,7 +7758,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 				}
 				dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 				dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-				v10 = (_WORD *)v24;
+				v10 = (WORD*)v24;
 				v19 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 				if (!--dword_1000E09A)
 				{
@@ -8417,11 +7787,11 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_rcScreenSmallRect.Right = dword_1000E0C6;
 		g_rcScreenSmallRect.Top = dword_1000E0C2;
 		g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-		v127 = *(_WORD *)dword_1000E0D2 + a5;
-		v131 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-		v73 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-		v74 = (_WORD *)(dword_1000E0D2 + 9);
-		dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+		v127 = *(WORD*)dword_1000E0D2 + a5;
+		v131 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+		v73 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+		v74 = (WORD*)(dword_1000E0D2 + 9);
+		dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 		dword_1000E064 = v73;
 		result = (unsigned __int16)dword_1000E0C2;
 		v75 = v131 - (unsigned __int16)dword_1000E0C2;
@@ -8439,7 +7809,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			do
 			{
 				LOWORD(result) = *v74;
-				v74 = (_WORD *)((char *)v74 + result + 2);
+				v74 = (WORD*)((char *)v74 + result + 2);
 				--v77;
 			} while (v77);
 		}
@@ -8487,7 +7857,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			LABEL_126:
 				dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 				dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-				v74 = (_WORD *)v84;
+				v74 = (WORD*)v84;
 				v80 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 				if (!--dword_1000E09A)
 				{
@@ -8560,8 +7930,8 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 				}
 				else
 				{
-					v101 = *(_DWORD *)(dword_1000E0CE + 2 * (unsigned __int8)*v88);
-					v102 = (_WORD *)(2 * v80);
+					v101 = *(DWORD*)(dword_1000E0CE + 2 * (unsigned __int8)*v88);
+					v102 = (WORD*)(2 * v80);
 					while (v98)
 					{
 						*v102 = v101;
@@ -8576,7 +7946,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 				do
 				{
 					v99 = (unsigned __int8)*v88++;
-					*(_WORD *)(2 * v80++) = *(_DWORD *)(v72 + 2 * v99);
+					*(WORD*)(2 * v80++) = *(DWORD*)(v72 + 2 * v99);
 					--v98;
 				} while (v98);
 				result = dword_1000E06C(v127, v131);
@@ -8586,9 +7956,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 				do
 				{
 					v100 = (unsigned __int8)*v88++;
-					*(_WORD *)(2 * v80) = (*(_DWORD *)(2 * v80)
-						+ *(_DWORD *)(v72 + 2 * v100)
-						- (dword_1000E460 & (unsigned int)(*(_DWORD *)(2 * v80) ^ *(_DWORD *)(v72 + 2 * v100)))) >> 1;
+					*(WORD*)(2 * v80) = (*(DWORD*)(2 * v80)
+						+ *(DWORD*)(v72 + 2 * v100)
+						- (dword_1000E460 & (unsigned int)(*(DWORD*)(2 * v80) ^ *(DWORD*)(v72 + 2 * v100)))) >> 1;
 					++v80;
 					--v98;
 				} while (v98);
@@ -8607,11 +7977,11 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_rcScreenSmallRect.Right = dword_1000E0C6;
 		g_rcScreenSmallRect.Top = dword_1000E0C2;
 		g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-		v128 = *(_WORD *)dword_1000E0D2 + a5;
-		v132 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-		v103 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-		v104 = (_WORD *)(dword_1000E0D2 + 9);
-		dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+		v128 = *(WORD*)dword_1000E0D2 + a5;
+		v132 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+		v103 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+		v104 = (WORD*)(dword_1000E0D2 + 9);
+		dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 		dword_1000E064 = v103;
 		result = (unsigned __int16)dword_1000E0C2;
 		v105 = v132 - (unsigned __int16)dword_1000E0C2;
@@ -8629,7 +7999,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			do
 			{
 				LOWORD(result) = *v104;
-				v104 = (_WORD *)((char *)v104 + result + 2);
+				v104 = (WORD*)((char *)v104 + result + 2);
 				--v107;
 			} while (v107);
 		}
@@ -8676,7 +8046,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			LABEL_158:
 				dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 				dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-				v104 = (_WORD *)v114;
+				v104 = (WORD*)v114;
 				v110 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 				if (!--dword_1000E09A)
 				{
@@ -8724,12 +8094,12 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			{
 				do
 				{
-					v121 = *(_DWORD *)(2 * v110);
+					v121 = *(DWORD*)(2 * v110);
 					if (!(v121 & 0x8007))
 					{
-						v122 = dword_1000E480 + (((unsigned int)dword_1000E468 & *(_DWORD *)(2 * v110)) >> 1);
-						*(_DWORD *)(2 * v110) = v121;
-						*(_WORD *)(2 * v110) = v122;
+						v122 = dword_1000E480 + (((unsigned int)dword_1000E468 & *(DWORD*)(2 * v110)) >> 1);
+						*(DWORD*)(2 * v110) = v121;
+						*(WORD*)(2 * v110) = v122;
 					}
 					++v110;
 					--v120;
@@ -8756,11 +8126,11 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_rcScreenSmallRect.Right = dword_1000E0C6;
 		g_rcScreenSmallRect.Top = dword_1000E0C2;
 		g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-		v126 = *(_WORD *)dword_1000E0D2 + a5;
-		v130 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-		v41 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-		v42 = (_WORD *)(dword_1000E0D2 + 9);
-		dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+		v126 = *(WORD*)dword_1000E0D2 + a5;
+		v130 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+		v41 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+		v42 = (WORD*)(dword_1000E0D2 + 9);
+		dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 		dword_1000E064 = v41;
 		result = (unsigned __int16)dword_1000E0C2;
 		v43 = v130 - (unsigned __int16)dword_1000E0C2;
@@ -8778,7 +8148,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			do
 			{
 				LOWORD(result) = *v42;
-				v42 = (_WORD *)((char *)v42 + result + 2);
+				v42 = (WORD*)((char *)v42 + result + 2);
 				--v45;
 			} while (v45);
 		}
@@ -8848,19 +8218,19 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 									{
 										if (*v57)
 										{
-											v69 = *(_DWORD *)(dword_1000E0CE + 4 * *v57);
+											v69 = *(DWORD*)(dword_1000E0CE + 4 * *v57);
 											do
 											{
-												LOWORD(v48) = *(_WORD *)(2 * v49);
+												LOWORD(v48) = *(WORD*)(2 * v49);
 												v70 = v48 << 16;
-												LOWORD(v70) = *(_WORD *)(2 * v49);
+												LOWORD(v70) = *(WORD*)(2 * v49);
 												v48 = dword_1000E084 & v70;
 												v124 = v69;
 												v71 = v69 >> 19;
 												if ((_BYTE)v71 != 31)
 												{
 													v48 = dword_1000E084 & (v48 * v71 >> 5) | ((dword_1000E084 & (v48 * v71 >> 5)) >> 16);
-													*(_WORD *)(2 * v49) = v124 + v48;
+													*(WORD*)(2 * v49) = v124 + v48;
 												}
 												v69 = v124;
 												++v49;
@@ -8878,17 +8248,17 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 										do
 										{
 											v65 = *v57++;
-											v66 = *(_DWORD *)(v40 + 4 * v65);
-											LOWORD(v48) = *(_WORD *)(2 * v49);
+											v66 = *(DWORD*)(v40 + 4 * v65);
+											LOWORD(v48) = *(WORD*)(2 * v49);
 											v67 = v48 << 16;
-											LOWORD(v67) = *(_WORD *)(2 * v49);
+											LOWORD(v67) = *(WORD*)(2 * v49);
 											v48 = dword_1000E084 & v67;
 											v123 = v66;
 											v68 = v66 >> 19;
 											if ((_BYTE)v68 != 31)
 											{
 												v48 = dword_1000E084 & (v48 * v68 >> 5) | ((dword_1000E084 & (v48 * v68 >> 5)) >> 16);
-												*(_WORD *)(2 * v49) = v123 + v48;
+												*(WORD*)(2 * v49) = v123 + v48;
 											}
 											++v49;
 											--v64;
@@ -8930,7 +8300,7 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 				LABEL_83:
 					dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 					dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-					v42 = (_WORD *)v53;
+					v42 = (WORD*)v53;
 					v49 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 					v48 = dword_1000E09A-- - 1;
 				} while (dword_1000E09A);
@@ -8946,42 +8316,6 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	}
 	return result;
 }
-// 10008B20: using guessed type int __cdecl loc_10008B20(int, int, int, int, int);
-// 10008B28: using guessed type int __cdecl loc_10008B28(int, int, int, int, int);
-// 10008E28: using guessed type int __cdecl loc_10008E28(int, int, int, int, int);
-// 10008E34: using guessed type int __cdecl loc_10008E34(int, int, int, int, int);
-// 10009187: using guessed type int __cdecl loc_10009187(int, int, int, int, int);
-// 10009193: using guessed type int __cdecl loc_10009193(int, int, int, int, int);
-// 1000948B: using guessed type int __cdecl loc_1000948B(int, int, int, int, int);
-// 10009497: using guessed type int __cdecl loc_10009497(int, int, int, int, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E084: using guessed type int dword_1000E084;
-// 1000E088: using guessed type int dword_1000E088;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E0B6: using guessed type int dword_1000E0B6;
-// 1000E0BA: using guessed type int dword_1000E0BA;
-// 1000E0BE: using guessed type int dword_1000E0BE;
-// 1000E0C2: using guessed type int dword_1000E0C2;
-// 1000E0C6: using guessed type int dword_1000E0C6;
-// 1000E0CA: using guessed type int dword_1000E0CA;
-// 1000E0CE: using guessed type int dword_1000E0CE;
-// 1000E0D2: using guessed type int dword_1000E0D2;
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
-// 1000E460: using guessed type int dword_1000E460;
-// 1000E468: using guessed type int dword_1000E468;
-// 1000E480: using guessed type int dword_1000E480;
 
 //----- (100095A8) --------------------------------------------------------
 // TODO: int __usercall x_sub_100095A8_DrawStruct@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6)
@@ -8990,7 +8324,7 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v6; // eax@1
 	int v7; // ebx@1
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -9019,19 +8353,19 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v35; // ecx@28
 	int v36; // eax@29
 	int v37; // eax@33
-	_WORD *v38; // edi@33
+	WORD*v38; // edi@33
 	int v39; // [sp+8h] [bp+8h]@1
 	int v40; // [sp+Ch] [bp+Ch]@1
 
-	v6 = *(_DWORD *)(a2 + 24);
-	dword_1000E0B6 = *(_DWORD *)v6;
-	dword_1000E0BA = 2 * *(_DWORD *)(v6 + 4);
-	dword_1000E0BE = *(_DWORD *)(v6 + 8);
-	dword_1000E0C2 = *(_DWORD *)(v6 + 12);
-	dword_1000E0C6 = *(_DWORD *)(v6 + 16);
-	dword_1000E0CA = *(_DWORD *)(v6 + 20);
-	dword_1000E0CE = *(_DWORD *)(a2 + 20);
-	dword_1000E0D2 = *(_DWORD *)(a2 + 16);
+	v6 = *(DWORD*)(a2 + 24);
+	dword_1000E0B6 = *(DWORD*) v6;
+	dword_1000E0BA = 2 * *(DWORD*) (v6 + 4);
+	dword_1000E0BE = *(DWORD*) (v6 + 8);
+	dword_1000E0C2 = *(DWORD*) (v6 + 12);
+	dword_1000E0C6 = *(DWORD*) (v6 + 16);
+	dword_1000E0CA = *(DWORD*) (v6 + 20);
+	dword_1000E0CE = *(DWORD*) (a2 + 20);
+	dword_1000E0D2 = *(DWORD*) (a2 + 16);
 	dword_1000E08C = a4;
 	dword_1000E090 = a3;
 	dword_1000E094 = a1;
@@ -9041,11 +8375,11 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	g_rcScreenSmallRect.Right = dword_1000E0C6;
 	g_rcScreenSmallRect.Top = dword_1000E0C2;
 	g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-	v39 = *(_WORD *)dword_1000E0D2 + a5;
-	v40 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-	v8 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-	v9 = (_WORD *)(dword_1000E0D2 + 9);
-	dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+	v39 = *(WORD*)dword_1000E0D2 + a5;
+	v40 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+	v8 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+	v9 = (WORD*)(dword_1000E0D2 + 9);
+	dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 	dword_1000E064 = v8;
 	result = (unsigned __int16)dword_1000E0C2;
 	v11 = v40 - (unsigned __int16)dword_1000E0C2;
@@ -9063,7 +8397,7 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		do
 		{
 			LOWORD(result) = *v9;
-			v9 = (_WORD *)((char *)v9 + result + 2);
+			v9 = (WORD*)((char *)v9 + result + 2);
 			--v16;
 		} while (v16);
 	}
@@ -9117,8 +8451,8 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 					{
 						if (*v28)
 						{
-							v37 = *(_DWORD *)(dword_1000E0CE + 2 * *v28);
-							v38 = (_WORD *)(2 * v19);
+							v37 = *(DWORD*)(dword_1000E0CE + 2 * *v28);
+							v38 = (WORD*)(2 * v19);
 							while (v35)
 							{
 								*v38 = v37;
@@ -9137,7 +8471,7 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						do
 						{
 							v36 = *v28++;
-							*(_WORD *)(2 * v19++) = *(_DWORD *)(v7 + 2 * v36);
+							*(WORD*)(2 * v19++) = *(DWORD*)(v7 + 2 * v36);
 							--v35;
 						} while (v35);
 						result = dword_1000E06C(v39, v40);
@@ -9192,7 +8526,7 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			}
 			dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 			dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-			v9 = (_WORD *)v24;
+			v9 = (WORD*)v24;
 			v19 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 			if (!--dword_1000E09A)
 			{
@@ -9217,7 +8551,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v6; // eax@1
 	__int16 v7; // bx@1
 	int v8; // edx@1
-	_WORD *v9; // esi@1
+	WORD*v9; // esi@1
 	int result; // eax@1
 	int v11; // edx@1
 	int v12; // edx@2
@@ -9226,7 +8560,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	unsigned __int8 v15; // of@2
 	int v16; // ecx@3
 	int v17; // edx@5
-	_WORD *v18; // edi@7
+	WORD*v18; // edi@7
 	unsigned int v19; // eax@9
 	bool v20; // cf@11
 	unsigned __int16 v21; // ax@13
@@ -9248,14 +8582,14 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v37; // [sp+Ch] [bp+Ch]@1
 
 	v6 = *(DWORD *)(a2 + 24);
-	dword_1000E0B6 = *(_DWORD *)(a2 + 28);
-	dword_1000E0BA = *(_DWORD *)(v6 + 4);
-	dword_1000E0BE = *(_DWORD *)(v6 + 8);
-	dword_1000E0C2 = *(_DWORD *)(v6 + 12);
-	dword_1000E0C6 = *(_DWORD *)(v6 + 16);
-	dword_1000E0CA = *(_DWORD *)(v6 + 20);
-	dword_1000E0CE = *(_DWORD *)(a2 + 20);
-	dword_1000E0D2 = *(_DWORD *)(a2 + 16);
+	dword_1000E0B6 = *(DWORD*)(a2 + 28);
+	dword_1000E0BA = *(DWORD*)(v6 + 4);
+	dword_1000E0BE = *(DWORD*)(v6 + 8);
+	dword_1000E0C2 = *(DWORD*)(v6 + 12);
+	dword_1000E0C6 = *(DWORD*)(v6 + 16);
+	dword_1000E0CA = *(DWORD*)(v6 + 20);
+	dword_1000E0CE = *(DWORD*)(a2 + 20);
+	dword_1000E0D2 = *(DWORD*)(a2 + 16);
 	dword_1000E08C = a4;
 	dword_1000E090 = a3;
 	dword_1000E094 = a1;
@@ -9269,7 +8603,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	v37 = *(WORD *)(dword_1000E0D2 + 2) + a6;
 	v8 = *(WORD *)(dword_1000E0D2 + 4) + 1;
 	v9 = (WORD *)(dword_1000E0D2 + 9);
-	dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+	dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 	dword_1000E064 = v8;
 	result = (unsigned __int16)dword_1000E0C2;
 	v11 = v37 - (unsigned __int16)dword_1000E0C2;
@@ -9302,7 +8636,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	{
 		dword_1000E05C = dword_1000E0B6 + v37 * dword_1000E0BA + (unsigned __int16)g_rcScreenSmallRect.Left;
 		dword_1000E060 = dword_1000E0B6 + (unsigned __int16)g_rcScreenSmallRect.Right + v37 * dword_1000E0BA + 1;
-		v18 = (_WORD *)(v36 + v37 * dword_1000E0BA + dword_1000E0B6);
+		v18 = (WORD*)(v36 + v37 * dword_1000E0BA + dword_1000E0B6);
 		dword_1000E06C = (int(__cdecl *)(_DWORD, _DWORD))loc_10009AE6;
 		if ((unsigned int)v18 + dword_1000E064 < dword_1000E060)
 			dword_1000E06C = (int(__cdecl *)(_DWORD, _DWORD))loc_10009AEE;
@@ -9354,7 +8688,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						{
 							v35 = *v27++;
 							*v18 = v7;
-							v18 = (_WORD *)((char *)v18 + 1);
+							v18 = (WORD*)((char *)v18 + 1);
 							--v34;
 						} while (v34);
 						result = dword_1000E06C(v36, v37);
@@ -9375,11 +8709,11 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						v22 = v25 + 1;
 						if (v30)
 						{
-							v18 = (_WORD *)((char *)v18 + v29);
+							v18 = (WORD*)((char *)v18 + v29);
 							if ((unsigned int)v18 > dword_1000E05C)
 							{
 								v31 = (char)v18;
-								v18 = (_WORD *)dword_1000E05C;
+								v18 = (WORD*)dword_1000E05C;
 								v28 = (v31 - dword_1000E05C) | 0x80;
 								v27 = v22 - 1;
 								goto LABEL_26;
@@ -9387,7 +8721,7 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						}
 						else
 						{
-							v18 = (_WORD *)((char *)v18 + v29);
+							v18 = (WORD*)((char *)v18 + v29);
 							if ((unsigned int)v18 > dword_1000E05C)
 								goto LABEL_23;
 						}
@@ -9395,11 +8729,11 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 					else
 					{
 						v22 = &v25[v24];
-						v18 = (_WORD *)((char *)v18 + v24);
+						v18 = (WORD*)((char *)v18 + v24);
 						if ((unsigned int)v18 > dword_1000E05C)
 						{
 							v26 = (int)v18 - dword_1000E05C;
-							v18 = (_WORD *)((char *)v18 - ((unsigned int)v18 - dword_1000E05C));
+							v18 = (WORD*)((char *)v18 - ((unsigned int)v18 - dword_1000E05C));
 							v27 = &v22[-v26];
 							v28 = v26;
 							goto LABEL_26;
@@ -9409,8 +8743,8 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			}
 			dword_1000E05C += dword_1000E0BA;
 			dword_1000E060 += dword_1000E0BA;
-			v9 = (_WORD *)v23;
-			v18 = (_WORD *)(dword_1000E0BA + dword_1000E07C);
+			v9 = (WORD*)v23;
+			v18 = (WORD*)(dword_1000E0BA + dword_1000E07C);
 			if (!--dword_1000E09A)
 			{
 			LABEL_35:
@@ -9476,16 +8810,16 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	int v49; // [sp+8h] [bp+8h]@1
 	int v50; // [sp+Ch] [bp+Ch]@1
 
-	v6 = *(_DWORD *)(a2 + 28);
-	dword_1000E0B6 = *(_DWORD *)v6;
-	dword_1000E0BA = 2 * *(_DWORD *)(v6 + 4);
-	dword_1000E0BE = *(_DWORD *)(v6 + 8);
-	dword_1000E0C2 = *(_DWORD *)(v6 + 12);
-	dword_1000E0C6 = *(_DWORD *)(v6 + 16);
-	dword_1000E0CA = *(_DWORD *)(v6 + 20);
-	dword_1000E0CE = *(_DWORD *)(a2 + 20);
-	dword_1000E0D2 = *(_DWORD *)(a2 + 24);
-	dword_1000E068 = *(_DWORD *)(a2 + 16);
+	v6 = *(DWORD*)(a2 + 28);
+	dword_1000E0B6 = *(DWORD*)v6;
+	dword_1000E0BA = 2 * *(DWORD*)(v6 + 4);
+	dword_1000E0BE = *(DWORD*)(v6 + 8);
+	dword_1000E0C2 = *(DWORD*)(v6 + 12);
+	dword_1000E0C6 = *(DWORD*)(v6 + 16);
+	dword_1000E0CA = *(DWORD*)(v6 + 20);
+	dword_1000E0CE = *(DWORD*)(a2 + 20);
+	dword_1000E0D2 = *(DWORD*)(a2 + 24);
+	dword_1000E068 = *(DWORD*)(a2 + 16);
 	v7 = (unsigned __int16)g_result.greenMask << 16;
 	LOWORD(v7) = g_result.blueMask | g_result.redMask;
 	dword_1000E084 = v7;
@@ -9499,11 +8833,11 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	g_rcScreenSmallRect.Right = dword_1000E0C6;
 	g_rcScreenSmallRect.Top = dword_1000E0C2;
 	g_rcScreenSmallRect.Bottom = dword_1000E0CA;
-	v49 = *(_WORD *)dword_1000E0D2 + a5;
-	v50 = *(_WORD *)(dword_1000E0D2 + 2) + a6;
-	v9 = *(_WORD *)(dword_1000E0D2 + 4) + 1;
-	v10 = (_WORD *)(dword_1000E0D2 + 9);
-	dword_1000E09A = *(_WORD *)(dword_1000E0D2 + 6);
+	v49 = *(WORD*)dword_1000E0D2 + a5;
+	v50 = *(WORD*)(dword_1000E0D2 + 2) + a6;
+	v9 = *(WORD*)(dword_1000E0D2 + 4) + 1;
+	v10 = (WORD*)(dword_1000E0D2 + 9);
+	dword_1000E09A = *(WORD*)(dword_1000E0D2 + 6);
 	dword_1000E064 = v9;
 	result = (unsigned __int16)dword_1000E0C2;
 	v12 = v50 - (unsigned __int16)dword_1000E0C2;
@@ -9521,7 +8855,7 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		do
 		{
 			LOWORD(result) = *v10;
-			v10 = (_WORD *)((char *)v10 + result + 2);
+			v10 = (WORD*)((char *)v10 + result + 2);
 			--v17;
 		} while (v17);
 	}
@@ -9576,7 +8910,7 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 					{
 						if (*v30)
 						{
-							v43 = *(_DWORD *)(dword_1000E0CE + 2 * *v30);
+							v43 = *(DWORD*)(dword_1000E0CE + 2 * *v30);
 							do
 							{
 								LOWORD(v20) = *(WORD *)(2 * v21);
@@ -9606,16 +8940,16 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 						do
 						{
 							v38 = *v30++;
-							LOWORD(v20) = *(_WORD *)(2 * v21);
+							LOWORD(v20) = *(WORD*)(2 * v21);
 							v39 = v20 << 16;
-							LOWORD(v39) = *(_WORD *)(2 * v21);
+							LOWORD(v39) = *(WORD*)(2 * v21);
 							v40 = dword_1000E084 & ((dword_1000E084 & (unsigned int)v39) * dword_1000E068 >> 5) | ((dword_1000E084 & ((dword_1000E084 & (unsigned int)v39) * dword_1000E068 >> 5)) >> 16);
-							LOWORD(v39) = *(_DWORD *)(v8 + 2 * v38);
-							v41 = *(_DWORD *)(v8 + 2 * v38) << 16;
+							LOWORD(v39) = *(DWORD*)(v8 + 2 * v38);
+							v41 = *(DWORD*)(v8 + 2 * v38) << 16;
 							LOWORD(v41) = v39;
 							v42 = dword_1000E084 & ((31 - dword_1000E068) * (dword_1000E084 & v41) >> 5);
 							v20 = v42 | (v42 >> 16);
-							*(_WORD *)(2 * v21++) = v40 + v20;
+							*(WORD*)(2 * v21++) = v40 + v20;
 							--v37;
 						} while (v37);
 						result = dword_1000E06C(v49, v50);
@@ -9670,7 +9004,7 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			}
 			dword_1000E05C += (unsigned int)dword_1000E0BA >> 1;
 			dword_1000E060 += (unsigned int)dword_1000E0BA >> 1;
-			v10 = (_WORD *)v26;
+			v10 = (WORD*)v26;
 			v21 = ((unsigned int)dword_1000E0BA >> 1) + dword_1000E07C;
 			v20 = dword_1000E09A-- - 1;
 			if (!dword_1000E09A)
@@ -9825,6 +9159,593 @@ LABEL_34:
 LABEL_39:
 	dword_1000E470 = result;
 	dword_1000E478 = result & ((unsigned __int16)dword_1000E464 | ((unsigned __int16)dword_1000E464 << 16));
+	return result;
+}
+
+__int32 __cdecl DrawHorizontalLineToPrimaryBuffer(int x, int y, int iSize, WORD wColor)
+{
+	__int32 result; // eax@1
+	int v5; // edx@1
+	LONG iLength; // ecx@1
+	__int16 *pBuffer1; // edi@8
+	unsigned __int32 iCount; // ecx@10
+	int iValueToSet; // edx@10
+	unsigned __int8 iInvertedCount; // cf@10
+	char *pDest; // edi@10
+	int i; // ecx@10
+
+	result = x;
+	HIWORD(v5) = HIWORD(y);
+	iLength = iSize + x - 1;
+	if (y >= g_result.screen.top && y <= g_result.screen.bottom)
+	{
+		if (x < g_result.screen.left)
+			result = g_result.screen.left;
+		if (iLength > g_result.screen.right)
+			iLength = g_result.screen.right;
+		if (result <= iLength)
+		{
+			pBuffer1 = &g_result.a_buffer1[640 * y + result + (g_result.offset >> 1)];
+			if (y >= g_result.surfaceHeight)
+				pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
+			LOWORD(v5) = wColor;
+			iCount = iLength - result + 1;
+			iValueToSet = v5 << 16;
+			LOWORD(iValueToSet) = wColor;
+			result = iValueToSet;
+			iInvertedCount = iCount & 1;
+			iCount >>= 1;
+			memset32(pBuffer1, iValueToSet, iCount);
+			pDest = (char *) &pBuffer1[2 * iCount];
+			for (i = iInvertedCount; i; --i)
+			{
+				*(WORD*) pDest = wColor;
+				pDest += 2;
+			}
+		}
+	}
+	return result;
+}
+
+__int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
+{
+	LONG v2; // ecx@1
+	__int32 result; // eax@1
+	LONG v4; // edx@2
+	LONG v5; // edx@3
+	LONG v6; // esi@4
+	unsigned int v7; // ecx@9
+	int v8; // edx@9
+	char *pPrimaryBuffer; // esi@9
+	unsigned int v10; // eax@9
+	int v11; // edi@9
+	int v12; // ebp@9
+	unsigned int v13; // ecx@10
+	bool v14; // cf@10
+	int v15; // ecx@10
+	int v16; // edx@11
+	int v17; // ecx@11
+	int v18; // ecx@17
+	int v19; // [sp-10h] [bp-1Ch]@11
+
+	v2 = *(DWORD*) (a2 + 8);
+	result = g_result.screen.left;
+	if (v2 >= g_result.screen.left
+		|| (v4 = v2 - g_result.screen.left + *(DWORD*) (a2 + 16),
+			v2 = g_result.screen.left,
+			*(DWORD*) (a2 + 16) = v4,
+			*(DWORD*) (a2 + 8) = result,
+			v4 > 0))
+	{
+		v5 = *(DWORD*) (a2 + 12);
+		result = g_result.screen.top;
+		if (v5 >= g_result.screen.top
+			|| (v6 = v5 - g_result.screen.top + *(DWORD*) (a2 + 20),
+				v5 = g_result.screen.top,
+				*(DWORD*) (a2 + 20) = v6,
+				*(DWORD*) (a2 + 12) = result,
+				v6 > 0))
+		{
+			if (v2 + *(DWORD*) (a2 + 16) - 1 <= g_result.screen.right
+				|| (result = g_result.screen.right - v2 + 1, *(DWORD*) (a2 + 16) = result, result > 0))
+			{
+				if (v5 + *(DWORD*) (a2 + 20) - 1 <= g_result.screen.bottom
+					|| (result = g_result.screen.bottom - v5 + 1, *(DWORD*) (a2 + 20) = result, result > 0))
+				{
+					v7 = *(DWORD*) (a2 + 12);
+					v8 = *(DWORD*) (a2 + 20);
+					pPrimaryBuffer = (char *) &g_result.a_buffer1[640 * *(DWORD*) (a2 + 12)]
+						+ 2 * *(DWORD*) (a2 + 8)
+						+ g_result.offset;
+					v10 = *(DWORD*) (a2 + 24);
+					v11 = -*(DWORD*) (a2 + 16);
+					v12 = g_result.dword_1000E468;
+					result = (g_result.dword_1000E468 & v10) >> 1;
+					if (v7 < g_result.surfaceHeight)
+					{
+						v13 = v8 + v7;
+						v14 = v13 < g_result.surfaceHeight;
+						v15 = v13 - g_result.surfaceHeight;
+						if (v14 || v15 == 0)
+							goto LABEL_17;
+						v16 = v8 - v15;
+						v19 = v15;
+						v17 = 0;
+						do
+						{
+							v17 -= v11;
+							do
+							{
+								LOWORD(a1) = *(WORD*) pPrimaryBuffer;
+								a1 = result + ((v12 & a1) >> 1);
+								*(WORD*) pPrimaryBuffer = a1;
+								pPrimaryBuffer += 2;
+								--v17;
+							} while (v17);
+							pPrimaryBuffer += 2 * v11 + 1280;
+							--v16;
+						} while (v16);
+						v8 = v19;
+					}
+					pPrimaryBuffer -= 614400;
+				LABEL_17:
+					v18 = 0;
+					do
+					{
+						v18 -= v11;
+						do
+						{
+							LOWORD(a1) = *(WORD*) pPrimaryBuffer;
+							a1 = result + ((v12 & a1) >> 1);
+							*(WORD*) pPrimaryBuffer = a1;
+							pPrimaryBuffer += 2;
+							--v18;
+						} while (v18);
+						pPrimaryBuffer += 2 * v11 + 1280;
+						--v8;
+					} while (v8);
+					return result;
+				}
+			}
+		}
+	}
+	return result;
+}
+
+
+//----- (10001BF0) --------------------------------------------------------
+// WORD red_mask = 0xF800;
+// WORD green_mask = 0x7E0;
+// WORD blue_mask = 0x1F;
+// 
+// BYTE red_value = (pixel & red_mask) >> 11;
+// BYTE green_value = (pixel & green_mask) >> 5;
+// BYTE blue_value = (pixel & blue_mask);
+int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
+{
+	int result; // eax@1
+	WORD *_pwDest; // esi@2
+	WORD *_pwSrc; // edi@2
+	int iItemsLeft; // ebx@2
+
+	result = iCount;
+	if (iCount > 0)
+	{
+		_pwDest = pwDest;
+		_pwSrc = pwSrc;
+		iItemsLeft = iCount;
+		do
+		{
+			if (*_pwSrc == 63519)                   // 0b1111100000011111
+			{
+				*_pwDest = 63519;                       // 0b1111100000011111
+			}
+			else
+			{
+				result = g_result.blueMask & ((*_pwSrc & 0x1F) << 11 >> m_wBBitFromLeftOffset);// iBBitMask
+				*_pwDest = g_result.redMask & ((unsigned __int16) (*_pwSrc & 0xF800) >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (*_pwSrc & 0x7E0) >> m_wGBitFromLeftOffset);
+			}
+			++_pwSrc;
+			++_pwDest;
+			--iItemsLeft;
+		} while (iItemsLeft);
+	}
+	return result;
+}
+// 1000E44C: using guessed type int g_result.redMask;
+// 1000E450: using guessed type int g_result.greenMask;
+// 1000E454: using guessed type int g_result.blueMask;
+// 1000E458: using guessed type __int16 m_wRBitFromLeftOffset;
+// 1000E45A: using guessed type __int16 m_wGBitFromLeftOffset;
+// 1000E45C: using guessed type __int16 m_wBBitFromLeftOffset;
+
+//----- (10001C80) --------------------------------------------------------
+// WORD red_mask = 0xF800;
+// WORD green_mask = 0x7E0;
+// WORD blue_mask = 0x1F;
+// 
+// BYTE red_value = (pixel & red_mask) >> 11;
+// BYTE green_value = (pixel & green_mask) >> 5;
+// BYTE blue_value = (pixel & blue_mask);
+INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
+{
+	int iItemsLeft; // ebx@1
+	char *_pSrc; // esi@2
+	char *_pDest; // edi@2
+	__int16 uCurrentColor; // ax@3
+	WORD uCurrentColorRed; // dx@3
+	__int16 _wCurrentColor; // bp@3
+	int result; // eax@3
+
+	iItemsLeft = iCount;
+	if (iCount > 0)
+	{
+		_pSrc = pSrc;
+		_pDest = pDest;
+		do
+		{
+			uCurrentColor = *(WORD*) _pSrc;
+			uCurrentColorRed = *(WORD*) _pSrc & 0xF800;
+			_pSrc += 4;
+			_wCurrentColor = uCurrentColor;
+			_pDest += 4;
+			result = g_result.blueMask & ((uCurrentColor & 0x1F) << 11 >> m_wBBitFromLeftOffset);
+			--iItemsLeft;
+			*((WORD*) _pDest - 2) = g_result.redMask & (uCurrentColorRed >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (_wCurrentColor & 0x7E0) >> m_wGBitFromLeftOffset);
+		} while (iItemsLeft);
+	}
+	return result;
+}
+
+
+// 1000E428: using guessed type int g_result.offset;
+// 1000E42C: using guessed type int g_result.surfaceHeight;
+
+//----- (10001EA0) --------------------------------------------------------
+
+// 1000E428: using guessed type int g_result.offset;
+// 1000E42C: using guessed type int g_result.surfaceHeight;
+
+//----- (10002030) --------------------------------------------------------
+
+
+//----- (100024C0) --------------------------------------------------------
+int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
+{
+	unsigned __int64 v5; // rax@2
+	int v6; // eax@9
+	int v7; // eax@19
+	int v8; // esi@21
+	int v9; // eax@23
+	char *pPrimaryBuffer; // edi@25
+	int v11; // ecx@28
+	int v12; // ecx@33
+	char *v13; // edi@35
+	int v14; // ecx@35
+	int v15; // ecx@40
+	int v16; // ecx@50
+	int v18; // [sp-18h] [bp-28h]@33
+	int v19; // [sp-14h] [bp-24h]@33
+	char *v20; // [sp-10h] [bp-20h]@26
+	char *v21; // [sp-10h] [bp-20h]@33
+	char *pData; // [sp+Ch] [bp-4h]@1
+	int v23; // [sp+18h] [bp+8h]@1
+	int v24; // [sp+1Ch] [bp+Ch]@1
+	int v25; // [sp+20h] [bp+10h]@12
+
+	pData = (char *) &unk_100AEEA8 + 2 * (g_result.offset / 2 % 640);
+	dword_10018E94 = g_result.screen.right - g_result.screen.left;
+	v23 = a1 - g_result.screen.left;
+	dword_10018E90 = g_result.screen.bottom + 1 - g_result.screen.top;
+	v24 = a2 - g_result.screen.top;
+	dword_10018E80 = 0;
+	if (v24 < 0)
+	{
+		LODWORD(v5) = v24;
+		a4 += v24;
+		if (a4 <= 0)
+			return v5;
+		v24 = 0;
+		dword_10018E80 |= 1u;
+	}
+	if (v24 >= dword_10018E90)
+	{
+		LODWORD(v5) = v24;
+		a4 = v24 + a4 - (dword_10018E90 - 1);
+		if (a4 >= 0)
+			return v5;
+		v24 = dword_10018E90 - 1;
+		dword_10018E80 |= 1u;
+	}
+	if ((a4 + v24 + 1 < 0) ^ __OFADD__(a4, v24 + 1))
+	{
+		a4 -= a4 + v24 + 1 + 1;
+		dword_10018E80 |= 2u;
+	}
+	v6 = a4 + v24 - 1;
+	if (v6 >= dword_10018E90)
+	{
+		a4 += dword_10018E90 - v6;
+		dword_10018E80 |= 2u;
+	}
+	if (v23 < 1)
+	{
+		LODWORD(v5) = v23;
+		v25 = v23 + a3;
+		if (v25 <= 1)
+			return v5;
+		v23 = 1;
+		a3 = v25 - 1;
+		dword_10018E80 |= 4u;
+	}
+	if (v23 >= dword_10018E94 + 2)
+	{
+		LODWORD(v5) = v23 + 1;
+		a3 = v23 + 1 + a3 - (dword_10018E94 + 2);
+		if (a3 >= 0)
+			return v5;
+		v23 = dword_10018E94 + 1;
+		dword_10018E80 |= 4u;
+	}
+	if ((a3 + v23 < 0) ^ __OFADD__(a3, v23))
+	{
+		a3 = -v23;
+		dword_10018E80 |= 8u;
+	}
+	v7 = a3 + v23 - 2;
+	if (v7 > dword_10018E94)
+	{
+		a3 += dword_10018E94 - v7;
+		dword_10018E80 |= 8u;
+	}
+	v8 = 2 * v24;
+	dword_10018E84 = 2;
+	if (a3 < 0)
+	{
+		dword_10018E84 = -dword_10018E84;
+		a3 = -a3;
+	}
+	dword_10018E8C = 1;
+	v9 = g_result.widthInBytes;
+	if (a4 < 0)
+	{
+		v9 = -g_result.widthInBytes;
+		a4 = -a4;
+		v8 = -2 * v24;
+		dword_10018E8C = -dword_10018E8C;
+	}
+	dword_10018E88 = v9;
+	v5 = (unsigned int) g_result.widthInBytes * (unsigned __int64) (unsigned int) v24;
+	pPrimaryBuffer = (char *) g_result.a_buffer1
+		+ g_result.screen.left
+		+ g_result.screen.left
+		+ g_result.widthInBytes * g_result.screen.top
+		+ v23
+		+ v23
+		+ v5
+		+ g_result.offset;
+	LODWORD(v5) = a5;
+	if (!(dword_10018E80 & 1))
+	{
+		--a4;
+		v20 = pPrimaryBuffer;
+		if (pPrimaryBuffer >= pData)
+			pPrimaryBuffer -= 614400;
+		*(WORD*) pPrimaryBuffer = a5;
+		v11 = a3 - 1;
+		if (a3 - 1 > 0)
+		{
+			do
+			{
+				pPrimaryBuffer += dword_10018E84;
+				*(WORD*) pPrimaryBuffer = a5;
+				--v11;
+			} while (v11);
+			*(WORD*) pPrimaryBuffer = a5;
+		}
+		pPrimaryBuffer = &v20[dword_10018E88];
+		HIDWORD(v5) += dword_10018E8C;
+		v8 += 2;
+	}
+	if (!(dword_10018E80 & 8))
+	{
+		v21 = pPrimaryBuffer;
+		v19 = v8;
+		v18 = HIDWORD(v5);
+		v12 = 2 * a3 - 2;
+		if (dword_10018E84 < 0)
+			v12 = -v12;
+		v13 = &pPrimaryBuffer[v12];
+		v14 = a4 - 1;
+		if (a4 - 1 > 0)
+		{
+			do
+			{
+				if (v13 >= pData)
+					v13 -= 614400;
+				*(WORD*) v13 = a5;
+				v13 += dword_10018E88;
+				v8 += 2;
+				HIDWORD(v5) += dword_10018E8C;
+				--v14;
+			} while (v14);
+		}
+		HIDWORD(v5) = v18;
+		v8 = v19;
+		pPrimaryBuffer = v21;
+	}
+	v15 = a4 - 1;
+	if (dword_10018E80 & 4)
+	{
+		pPrimaryBuffer += v15 * dword_10018E88;
+	}
+	else if (v15 > 0)
+	{
+		do
+		{
+			if (pPrimaryBuffer >= pData)
+				pPrimaryBuffer -= 614400;
+			*(WORD*) pPrimaryBuffer = a5;
+			pPrimaryBuffer += dword_10018E88;
+			v8 += 2;
+			HIDWORD(v5) += dword_10018E8C;
+			--v15;
+		} while (v15);
+	}
+	if ((unsigned int) a4 >= 1 && !(dword_10018E80 & 2))
+	{
+		if (pPrimaryBuffer >= pData)
+			pPrimaryBuffer -= 614400;
+		*(WORD*) pPrimaryBuffer = a5;
+		v16 = a3 - 1;
+		if (a3 - 1 > 0)
+		{
+			do
+			{
+				pPrimaryBuffer += dword_10018E84;
+				*(WORD*) pPrimaryBuffer = a5;
+				--v16;
+			} while (v16);
+			*(WORD*) pPrimaryBuffer = a5;
+		}
+	}
+	return v5;
+}
+// 100024C0: using guessed type int __cdecl x_sub_100024C0(int, int, int, int, int);
+// 1000E418: using guessed type RECT g_result.screen;
+// 1000E428: using guessed type int g_result.offset;
+// 1000E438: using guessed type int g_result.widthInBytes;
+// 10018E7C: using guessed type int g_pFnReleaseDirectDraw;
+// 10018E80: using guessed type int dword_10018E80;
+// 10018E84: using guessed type int dword_10018E84;
+// 10018E88: using guessed type int dword_10018E88;
+// 10018E8C: using guessed type int dword_10018E8C;
+// 10018E90: using guessed type int dword_10018E90;
+// 10018E94: using guessed type int dword_10018E94;
+
+//----- (100027C0) --------------------------------------------------------
+
+// 1000E418: using guessed type RECT g_result.screen;
+// 1000E428: using guessed type int g_result.offset;
+// 1000E42C: using guessed type int g_result.surfaceHeight;
+
+//----- (10002860) --------------------------------------------------------
+
+// 1000E428: using guessed type int g_result.offset;
+// 1000E42C: using guessed type int g_result.surfaceHeight;
+
+//----- (100028F0) --------------------------------------------------------
+// 
+//       if ( x <= 0 )
+//         result = sub_100028F0(-x, -_y, x + 640, _y + 480, -_y);
+//       else
+//         result = sub_100028F0(0, -_y, 640 - x, _y + 480, -_y);
+// 
+//     ...
+//     
+//     if ( x <= 0 )
+//       result = sub_100028F0(-x, 0, x + 640, 480 - _y, -_y);
+//     else
+//       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
+// 
+int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+{
+	char *v5; // edi@1
+	int v6; // edx@1
+	unsigned int v7; // esi@1
+	int result; // eax@2
+	unsigned int v9; // edx@4
+	unsigned int v10; // ecx@5
+	unsigned int v11; // ecx@10
+	unsigned int v12; // edx@16
+	unsigned int v13; // ecx@17
+	unsigned int v14; // ecx@22
+	unsigned int v15; // [sp-10h] [bp-1Ch]@4
+	unsigned int v16; // [sp-10h] [bp-1Ch]@16
+
+	v5 = (char *) &g_result.a_buffer3[640 * y] + 2 * x + g_result.offset;
+	v6 = iHeight;
+	v7 = 2 * (640 - iWidth);
+	if (a5 < 0)
+	{
+		result = 0xFFE00000 * a5;
+		LOWORD(result) = -32 * a5;
+		if (y < g_result.surfaceHeight)
+		{
+			if (iHeight + y <= g_result.surfaceHeight)
+			{
+				do
+				{
+				LABEL_10:
+					v11 = iWidth >> 1;
+					do
+					{
+						*(DWORD*) v5 -= result;
+						v5 += 4;
+						--v11;
+					} while (v11);
+					v5 += v7;
+					--v6;
+				} while (v6);
+				return result;
+			}
+			v9 = iHeight - (iHeight + y - g_result.surfaceHeight);
+			v15 = iHeight + y - g_result.surfaceHeight;
+			do
+			{
+				v10 = iWidth >> 1;
+				do
+				{
+					*(DWORD*) v5 -= result;
+					v5 += 4;
+					--v10;
+				} while (v10);
+				v5 += v7;
+				--v9;
+			} while (v9);
+			v6 = v15;
+		}
+		v5 -= 614400;
+		goto LABEL_10;
+	}
+	result = a5 << 21;
+	LOWORD(result) = 32 * a5;
+	if (y >= g_result.surfaceHeight)
+		goto LABEL_21;
+	if (iHeight + y > g_result.surfaceHeight)
+	{
+		v12 = iHeight - (iHeight + y - g_result.surfaceHeight);
+		v16 = iHeight + y - g_result.surfaceHeight;
+		do
+		{
+			v13 = iWidth >> 1;
+			do
+			{
+				*(DWORD*) v5 += result;
+				v5 += 4;
+				--v13;
+			} while (v13);
+			v5 += v7;
+			--v12;
+		} while (v12);
+		v6 = v16;
+	LABEL_21:
+		v5 -= 614400;
+		goto LABEL_22;
+	}
+	do
+	{
+	LABEL_22:
+		v14 = iWidth >> 1;
+		do
+		{
+			*(DWORD*) v5 += result;
+			v5 += 4;
+			--v14;
+		} while (v14);
+		v5 += v7;
+		--v6;
+	} while (v6);
 	return result;
 }
 #pragma endregion
