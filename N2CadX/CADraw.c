@@ -6,139 +6,14 @@
 static SCADrawResult g_result = { 0, };
 
 
-#pragma region Temp
-//IDirectDraw *__cdecl ShutdownDirectDraw();
-//IDirectDraw *__cdecl ReleaseDirectDraw();
-//int __cdecl SetPixelFormatMasks(__int16 iRBitMask, int iGBitMask, int iBBitMask);
-//signed int __cdecl SetDisplayMode(int iWidth, int iHeight);
-//__int32 __cdecl DrawHorizontalLineToPrimaryBuffer(int x, int y, int iSize, WORD wColor);
-//LONG __cdecl DrawVerticalLineToPrimaryBuffer(INT x, INT y, int iSize, __int16 a4);
-//LONG __cdecl DrawRectToPrimaryBuffer(__int32 x, __int32 y, int iWidth, int iHeight, __int16 a5);
-//LONG __cdecl DrawFilledRectToPrimaryBuffer(int x, int y, int iWidth, int iHeight, LONG iColor);
-//// __int32 __usercall x_sub_100016D0_DrawStruct@<eax>(unsigned int a1@<ebx>, int a2@<ebp>);
-//LONG __cdecl DrawPointToPrimaryBuffer(int x, int y, __int16 sColor);
-//LONG __cdecl DrawPointSecondaryBuffer(LONG x, LONG y, __int16 sColor);
-//int __cdecl DrawImageToPrimaryBuffer(int iSrcX, unsigned int iSrcY, int a3, int a4, int iDestX, int iDestY, int iDestWidth, char *pDestAddress); // idb
-//void __cdecl j_nullsub_1();
-//void __cdecl nullsub_1();
-//int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount); // idb
-//int __cdecl x_sub_10001C80_CopyPixelsArray(char *pSrc, char *pDest, int iCount);
-//unsigned int __cdecl x_sub_10001D00(int x, int y);
-//int __cdecl x_sub_10001EA0_call(int a1, int a2, int a3, int a4, int a5, int a6, int a7);
-//int __cdecl x_sub_10001EE0_call(int a1, int a2, int a3, int a4, int a5, int a6);
-//int __cdecl x_sub_10001F20_call(int a1, int a2, int a3);
-//int __cdecl x_sub_10001F50_call(int a1, int a2, int a3, int a4, int a5, int a6, int a7);
-//unsigned int __cdecl CopyRectFromPrimaryBufferToSecondaryBuffer(int x, unsigned int y, unsigned int iWidth, int iHeight); // idb
-//int __cdecl sub_10002030(int x, int y, int iWidth, __int16 wColor, int a5); // idb
-//int __cdecl x_sub_100024C0(int, int, int, int, int); // weak
-//__int32 __cdecl x_sub_100027C0();
-//unsigned int __cdecl x_sub_10002860_RectAndFFFBFFFBu(int x, unsigned int y, unsigned int iWidth, int iHeight); // idb
-//int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5); // idb
-//BOOL __cdecl LockSurface();
-//int __cdecl UnlockSurface();
-//BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDestWidth, int iDestHeight, int iDestX, int iDestY, int a7, char *pSrcArray); // idb
-//int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight);
-//signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4);
-//// signed int __usercall sub_10002C70@<eax>(int a1@<ebp>);
-//// int __usercall sub_10003090@<eax>(int a1@<ebp>);
-//int __cdecl x_sub_10003400(unsigned __int8 *a1, int a2);
-//unsigned __int8 __cdecl x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5);
-//unsigned __int8 __cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5);
-//int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9);
-//int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8); // idb
-//int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9);
-//int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5);
-//// int __usercall sub_10004460@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7);
-//int __cdecl loc_10004635(int, int, int); // weak
-//int __cdecl loc_10004641(int, int, int); // weak
-//// int __usercall sub_10004786@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7);
-//int __cdecl loc_1000495B(int, int, int); // weak
-//int __cdecl loc_10004967(int, int, int); // weak
-//// int __usercall sub_10004AB6@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8);
-//int __cdecl loc_10004CA9(int, int, __int16, int); // weak
-//int __cdecl loc_10004CB5(int, int, __int16, int); // weak
-//// int __usercall sub_10004E80@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_10005069(int, int, __int16, int, int); // weak
-//int __cdecl loc_10005075(int, int, __int16, int, int); // weak
-//// int __usercall sub_100051AF@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8);
-//int __cdecl loc_1000537A(int, int, int, int); // weak
-//int __cdecl loc_10005386(int, int, int, int); // weak
-//// int __usercall sub_10005493@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8, int a9);
-//int __cdecl loc_1000568F(int, int, int, int, int); // weak
-//int __cdecl loc_1000569B(int, int, int, int, int); // weak
-//// int __usercall sub_1000586C@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8);
-//int __cdecl loc_10005A40(int, int, int, int); // weak
-//int __cdecl loc_10005A4C(int, int, int, int); // weak
-//// int __usercall sub_10005B96@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_10005D88(int, int, __int16, int, int); // weak
-//int __cdecl loc_10005D94(int, int, __int16, int, int); // weak
-//// int __usercall sub_10005F01@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_100060EA(int, int, __int16, int, int); // weak
-//int __cdecl loc_100060F6(int, int, __int16, int, int); // weak
-//// int __usercall sub_1000625D@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8);
-//int __cdecl loc_10006431(int, int, int, int); // weak
-//int __cdecl loc_1000643D(int, int, int, int); // weak
-//// int __usercall sub_10006586@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7);
-//int __cdecl loc_10006758(int, int, int); // weak
-//int __cdecl loc_10006764(int, int, int); // weak
-//// int __usercall sub_1000687D@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_10006A8E(int, int, __int16, int, int); // weak
-//int __cdecl loc_10006A9A(int, int, __int16, int, int); // weak
-//// int __usercall sub_10006C48@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_10006E3A(int, int, __int16, int, int); // weak
-//int __cdecl loc_10006E46(int, int, __int16, int, int); // weak
-//// int __usercall sub_10006FE2@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_100071F1(int, int, __int16, int, int); // weak
-//int __cdecl loc_100071FD(int, int, __int16, int, int); // weak
-//// int __usercall sub_100073B2@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8);
-//int __cdecl loc_10007556(int, int, int, int); // weak
-//int __cdecl loc_10007562(int, int, int, int); // weak
-//// int __usercall sub_10007678@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8);
-//int __cdecl loc_1000781C(int, int, int, int); // weak
-//int __cdecl loc_10007828(int, int, int, int); // weak
-//// int __usercall sub_10007938@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8);
-//int __cdecl loc_10007B4A(int, int, __int16, int); // weak
-//int __cdecl loc_10007B56(int, int, __int16, int); // weak
-//// int __usercall sub_10007D0C@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9);
-//int __cdecl loc_10007F1D(int, int, __int16, int, int); // weak
-//int __cdecl loc_10007F29(int, int, __int16, int, int); // weak
-//__int16 __fastcall x_sub_100087A1(int a1, int a2);
-//// int __usercall x_sub_100088E9_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6);
-//int __cdecl loc_10008B20(int, int, int, int, int); // weak
-//int __cdecl loc_10008B28(int, int, int, int, int); // weak
-//int __cdecl loc_10008E28(int, int, int, int, int); // weak
-//int __cdecl loc_10008E34(int, int, int, int, int); // weak
-//int __cdecl loc_10009187(int, int, int, int, int); // weak
-//int __cdecl loc_10009193(int, int, int, int, int); // weak
-//int __cdecl loc_1000948B(int, int, int, int, int); // weak
-//int __cdecl loc_10009497(int, int, int, int, int); // weak
-//// int __usercall x_sub_100095A8_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6);
-//int __cdecl loc_100097C0(int, int, int, int, int); // weak
-//int __cdecl loc_100097C8(int, int, int, int, int); // weak
-//// int __usercall x_sub_100098D3_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6);
-//int __cdecl loc_10009AE6(int, int, int, int, int, int); // weak
-//int __cdecl loc_10009AEE(int, int, int, int, int, int); // weak
-//// int __usercall x_sub_10009F13_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6);
-//int __cdecl loc_1000A15C(int, int, int, int, int, int); // weak
-//int __cdecl loc_1000A168(int, int, int, int, int, int); // weak
-//
-//__int16 rcRect_left = 0; // weak
-//__int16 rcRect_top = 0; // weak
-//__int16 rcRect_right = 0; // weak
-//__int16 rcRect_bottom = 0; // weak
-//int(__cdecl *dword_1000E06C)(DWORD, DWORD) = NULL; // weak
-//SMALL_RECT g_rcScreenSmallRect = { 0, 0, 0, 0 }; // weak
-#pragma endregion
-
-
 #pragma region CADraw_Init
 SCADrawResult* CADraw_Init()
 {
 	Initialize();
 
-	//g_pBufferPrimary = (BYTE*) g_aBufferPrimary16;
-	//g_pBufferSecondary = (BYTE*) g_aBufferSecondary16;
-	//g_pBufferThird = (BYTE*) g_aBufferThird;
+	g_result.p_buffer1 = g_result.a_buffer1;
+	g_result.p_buffer2 = g_result.a_buffer2;
+	g_result.p_buffer3 = g_result.a_buffer3;
 
 	g_result.p_fnInitialize = (INT (*)()) &Initialize;
 	g_result.p_fnInitializeDirectDraw = (INT (*)(HWND, BOOL)) &InitializeDirectDraw;
@@ -210,8 +85,8 @@ SCADrawResult* CADraw_Init()
 #pragma region Functions (done)
 INT Initialize()
 {
-	g_result.width = 640;
-	g_result.height = 480;
+	g_result.width = ScreenWidth;
+	g_result.height = ScreenHeight;
 	g_result.widthInBytes = 1280;
 	g_result.offset = 0;
 	g_result.surfaceHeight = 480;
@@ -290,7 +165,7 @@ INT SetDisplayMode(INT width, INT height)
 
 	if (g_result.fullscreen)
 	{
-		result = IDirectDraw_SetDisplayMode(g_result.p_ddraw, width, height, BitsPerPixel16);
+		result = IDirectDraw_SetDisplayMode(g_result.p_ddraw, width, height, ScreenBpp);
 		if (FAILED(result))
 			return FALSE;
 	}
