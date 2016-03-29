@@ -56,8 +56,8 @@ struct _SGlobalData
 typedef struct _SGlobalData SGlobalData;
 
 
-static SCADrawResult g_result = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
-static SGlobalData g_data = { 0, };
+static SCADrawResult g_result = { 0, };
+static SGlobalData g_data = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
 
 
 #pragma region CADraw_Init
@@ -1119,54 +1119,479 @@ INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 /*
 	Description: -
 	Address: 0x10002A70
+	Notes: modified locking and unlocking surface logic and return result. On the original version during surface
+		unlocking on the end of function may return not DD_OK value (some error code), but logic of this method is
+		return TRUE when no errors occured.
 */
-BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDestWidth, int iDestHeight, int iDestX, int iDestY, int a7, char *pSrcArray)
+BOOL CopyData8ToSurface(INT sourceX, INT sourceY, INT aaa1, INT copiesCount, INT aaa2, INT aaa3, INT sourceWidth, WORD* p_source)
 {
-	BOOL bResult; // eax@2
-	char *pDest; // edi@5
-	char *pSrc; // esi@5
-	int _iSrcHeight; // edx@5
-	int iDoublesCopied; // ecx@5
-	BOOL bNeedUnlockSurface; // [sp+Ch] [bp-4h]@3
+	BOOL isSurfaceLocked = g_result.p_surface == NULL;
+	if (isSurfaceLocked)
+	{
+		if (!LockSurface())
+			return FALSE;
+	}
 
-	if (g_result.p_surface)
+	WORD* p_dst = g_result.p_surface + destX + destY * g_result.pitch;
+	WORD* p_src = p_source + sourceX + sourceY * sourceWidth;
+
+	//	pDest = (char *) g_result.p_surface + iDestX + iDestX + iDestY * g_lPitch;
+	//	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * a7)];
+	//	_iSrcHeight = iDestHeight;
+	//	iDoublesCopied = 0;
+	//	do
+	//	{
+	//		iDoublesCopied += iDestWidth >> 2;
+	//		do
+	//		{
+	//			*(double *) pDest = *(double *) pSrc;
+	//			pSrc += 8;
+	//			pDest += 8;
+	//			--iDoublesCopied;
+	//		} while (iDoublesCopied);
+	//		pSrc += 2 * a7 + -8 * (iDestWidth >> 2);
+	//		pDest += g_lPitch + -8 * (iDestWidth >> 2);
+	//		--_iSrcHeight;
+	//	} while (_iSrcHeight);
+
+	if (isSurfaceLocked)
+		return UnlockSurface();
+
+	return TRUE;
+}
+
+//BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDestWidth, int iDestHeight, int iDestX, int iDestY, int a7, char *pSrcArray)
+//{
+//	BOOL bResult; // eax@2
+//	char *pDest; // edi@5
+//	char *pSrc; // esi@5
+//	int _iSrcHeight; // edx@5
+//	int iDoublesCopied; // ecx@5
+//	BOOL bNeedUnlockSurface; // [sp+Ch] [bp-4h]@3
+//
+//	if (g_result.p_surface)
+//	{
+//		bNeedUnlockSurface = 0;
+//	}
+//	else
+//	{
+//		bResult = LockSurface();
+//		if (!bResult)
+//			return bResult;
+//		bNeedUnlockSurface = 1;
+//	}
+//	pDest = (char *)g_result.p_surface + iDestX + iDestX + iDestY * g_lPitch;
+//	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * a7)];
+//	_iSrcHeight = iDestHeight;
+//	iDoublesCopied = 0;
+//	do
+//	{
+//		iDoublesCopied += iDestWidth >> 2;
+//		do
+//		{
+//			*(double *)pDest = *(double *)pSrc;
+//			pSrc += 8;
+//			pDest += 8;
+//			--iDoublesCopied;
+//		} while (iDoublesCopied);
+//		pSrc += 2 * a7 + -8 * (iDestWidth >> 2);
+//		pDest += g_lPitch + -8 * (iDestWidth >> 2);
+//		--_iSrcHeight;
+//	} while (_iSrcHeight);
+//	bResult = bNeedUnlockSurface;
+//	if (bNeedUnlockSurface)
+//		bResult = UnlockSurface();
+//	return bResult;
+//}
+
+//----- (100087A1) --------------------------------------------------------
+__int16 __fastcall x_sub_100087A1(int a1, int a2)
+{
+	unsigned int v2; // eax@1
+
+	dword_1000E0AA += __PAIR__(-1, (unsigned __int16)g_result.redMask) & a2;
+	dword_1000E0AE += __PAIR__(-1, (unsigned __int16)g_result.greenMask) & a2;
+	v2 = __PAIR__(-1, (unsigned __int16)g_result.blueMask) & a2;
+	dword_1000E0B2 += __PAIR__(-1, (unsigned __int16)g_result.blueMask) & a2;
+	return v2;
+}
+
+//----- (10001140) --------------------------------------------------------
+// WORD red_mask = 0xF800;
+// WORD green_mask = 0x7E0;
+// WORD blue_mask = 0x1F;
+// 
+// BYTE red_value = (pixel & red_mask) >> 11;
+// BYTE green_value = (pixel & green_mask) >> 5;
+// BYTE blue_value = (pixel & blue_mask);
+int SetPixelFormatMasks(int iRBitMask, int iGBitMask, int iBBitMask)
+{
+	signed int iRBitFromLeftOffset; // edx@1
+	signed int v4; // ebx@1
+	signed int iGBitFromLeftOffset; // ecx@6
+	signed int v6; // edx@6
+	unsigned __int16 v7; // bx@11
+	signed int iBBitFromLeftOffset; // ecx@11
+	signed int v9; // edx@11
+	signed __int16 v10; // cx@16
+	signed int iRBitFromRightOffset; // edx@16
+	signed __int16 v12; // cx@21
+	signed int iGBitFromRightOffset; // edx@21
+	signed __int16 v14; // cx@26
+	signed int iBBitFromRightOffset; // edx@26
+	int result; // eax@34
+
+	iRBitFromLeftOffset = 0;
+	LOWORD(g_result.redMask) = iRBitMask;       // 0xF800
+												// 0b1111100000000000
+	HIWORD(g_result.redMask) = iRBitMask;
+	LOWORD(g_result.greenMask) = iGBitMask;       // 0x7E0
+												  // 0b0000011111100000
+	HIWORD(g_result.greenMask) = iGBitMask;
+	LOWORD(g_result.blueMask) = iBBitMask;       // 0x1F
+												 // 0b0000000000011111
+	HIWORD(g_result.blueMask) = iBBitMask;
+	v4 = 0x8000;                                  // 0b1000000000000000
+	while (!((unsigned __int16)iRBitMask & (unsigned __int16)v4))
 	{
-		bNeedUnlockSurface = 0;
+		++iRBitFromLeftOffset;
+		v4 >>= 1;
+		if (iRBitFromLeftOffset >= 16)
+			goto LABEL_6;
 	}
-	else
+	LOWORD(dword_1000E464) = v4 | dword_1000E464;
+LABEL_6:
+	m_wRBitFromLeftOffset = iRBitFromLeftOffset;
+	iGBitFromLeftOffset = 0;
+	v6 = 0x8000;                                  // 0b1000000000000000
+	while (!((unsigned __int16)iGBitMask & (unsigned __int16)v6))
 	{
-		bResult = LockSurface();
-		if (!bResult)
-			return bResult;
-		bNeedUnlockSurface = 1;
+		++iGBitFromLeftOffset;
+		v6 >>= 1;
+		if (iGBitFromLeftOffset >= 16)
+			goto LABEL_11;
 	}
-	pDest = (char *) g_result.p_surface + iDestX + iDestX + iDestY * g_lPitch;
-	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * a7)];
-	_iSrcHeight = iDestHeight;
-	iDoublesCopied = 0;
-	do
+	LOWORD(dword_1000E464) = v6 | dword_1000E464;
+LABEL_11:
+	v7 = iGBitFromLeftOffset;
+	iBBitFromLeftOffset = 0;
+	m_wGBitFromLeftOffset = v7;
+	v9 = 0x8000;                                  // 0b1000000000000000
+	while (!((unsigned __int16)iBBitMask & (unsigned __int16)v9))
 	{
-		iDoublesCopied += iDestWidth >> 2;
+		++iBBitFromLeftOffset;
+		v9 >>= 1;
+		if (iBBitFromLeftOffset >= 16)
+			goto LABEL_16;
+	}
+	LOWORD(dword_1000E464) = v9 | dword_1000E464;
+LABEL_16:
+	m_wBBitFromLeftOffset = iBBitFromLeftOffset;
+	v10 = 1;
+	iRBitFromRightOffset = 0;
+	while (!((unsigned __int16)iRBitMask & (unsigned __int16)v10))
+	{
+		++iRBitFromRightOffset;
+		v10 *= 2;
+		if (iRBitFromRightOffset >= 16)
+			goto LABEL_21;
+	}
+	LOWORD(dword_1000E460) = v10 | dword_1000E460;
+LABEL_21:
+	v12 = 1;
+	iGBitFromRightOffset = 0;
+	while (!((unsigned __int16)iGBitMask & (unsigned __int16)v12))
+	{
+		++iGBitFromRightOffset;
+		v12 *= 2;
+		if (iGBitFromRightOffset >= 16)
+			goto LABEL_26;
+	}
+	LOWORD(dword_1000E460) = v12 | dword_1000E460;
+LABEL_26:
+	v14 = 1;
+	iBBitFromRightOffset = 0;
+	while (!((unsigned __int16)iBBitMask & (unsigned __int16)v14))
+	{
+		++iBBitFromRightOffset;
+		v14 *= 2;
+		if (iBBitFromRightOffset >= 16)
+			goto LABEL_31;
+	}
+	LOWORD(dword_1000E460) = v14 | dword_1000E460;
+LABEL_31:
+	HIWORD(dword_1000E464) = dword_1000E464;
+	HIWORD(dword_1000E460) = dword_1000E460;
+	word_1000E46C = ~(_WORD)dword_1000E464;
+	word_1000E46E = ~(_WORD)dword_1000E464;
+	LOWORD(dword_1000E468) = ~(_WORD)dword_1000E460;
+	HIWORD(dword_1000E468) = ~(_WORD)dword_1000E460;
+	LOWORD(dword_1000E480) = (2 << (11 - v7)) + (5 << (11 - m_wBBitFromLeftOffset));
+	HIWORD(dword_1000E480) = (2 << (11 - v7)) + (5 << (11 - m_wBBitFromLeftOffset));
+	if ((unsigned __int16)m_wRBitFromLeftOffset <= v7)
+	{
+		if (v7 > (unsigned __int16)m_wBBitFromLeftOffset)
+		{
+			if ((unsigned __int16)m_wBBitFromLeftOffset <= (unsigned __int16)m_wRBitFromLeftOffset)
+				goto LABEL_34;
+		LABEL_37:
+			result = (unsigned __int16)iRBitMask | (unsigned __int16)iGBitMask | (iBBitMask << 16);
+			goto LABEL_39;
+		}
+	LABEL_38:
+		result = (unsigned __int16)iRBitMask | (unsigned __int16)iBBitMask | (iGBitMask << 16);
+		goto LABEL_39;
+	}
+	if (v7 > (unsigned __int16)m_wBBitFromLeftOffset)
+		goto LABEL_38;
+	if ((unsigned __int16)m_wBBitFromLeftOffset <= (unsigned __int16)m_wRBitFromLeftOffset)
+		goto LABEL_37;
+LABEL_34:
+	result = (unsigned __int16)iGBitMask | (unsigned __int16)iBBitMask | ((unsigned __int16)iRBitMask << 16);
+LABEL_39:
+	dword_1000E470 = result;
+	dword_1000E478 = result & ((unsigned __int16)dword_1000E464 | ((unsigned __int16)dword_1000E464 << 16));
+	return result;
+}
+
+__int32 __cdecl DrawHorizontalLineToPrimaryBuffer(int x, int y, int iSize, WORD wColor)
+{
+	__int32 result; // eax@1
+	int v5; // edx@1
+	LONG iLength; // ecx@1
+	__int16 *pBuffer1; // edi@8
+	unsigned __int32 iCount; // ecx@10
+	int iValueToSet; // edx@10
+	unsigned __int8 iInvertedCount; // cf@10
+	char *pDest; // edi@10
+	int i; // ecx@10
+
+	result = x;
+	HIWORD(v5) = HIWORD(y);
+	iLength = iSize + x - 1;
+	if (y >= g_result.screen.top && y <= g_result.screen.bottom)
+	{
+		if (x < g_result.screen.left)
+			result = g_result.screen.left;
+		if (iLength > g_result.screen.right)
+			iLength = g_result.screen.right;
+		if (result <= iLength)
+		{
+			pBuffer1 = &g_result.a_buffer1[640 * y + result + (g_result.offset >> 1)];
+			if (y >= g_result.surfaceHeight)
+				pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
+			LOWORD(v5) = wColor;
+			iCount = iLength - result + 1;
+			iValueToSet = v5 << 16;
+			LOWORD(iValueToSet) = wColor;
+			result = iValueToSet;
+			iInvertedCount = iCount & 1;
+			iCount >>= 1;
+			memset32(pBuffer1, iValueToSet, iCount);
+			pDest = (char *)&pBuffer1[2 * iCount];
+			for (i = iInvertedCount; i; --i)
+			{
+				*(WORD*)pDest = wColor;
+				pDest += 2;
+			}
+		}
+	}
+	return result;
+}
+
+//----- (10001BF0) --------------------------------------------------------
+// WORD red_mask = 0xF800;
+// WORD green_mask = 0x7E0;
+// WORD blue_mask = 0x1F;
+// 
+// BYTE red_value = (pixel & red_mask) >> 11;
+// BYTE green_value = (pixel & green_mask) >> 5;
+// BYTE blue_value = (pixel & blue_mask);
+int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
+{
+	int result; // eax@1
+	WORD *_pwDest; // esi@2
+	WORD *_pwSrc; // edi@2
+	int iItemsLeft; // ebx@2
+
+	result = iCount;
+	if (iCount > 0)
+	{
+		_pwDest = pwDest;
+		_pwSrc = pwSrc;
+		iItemsLeft = iCount;
 		do
 		{
-			*(double *) pDest = *(double *) pSrc;
-			pSrc += 8;
-			pDest += 8;
-			--iDoublesCopied;
-		} while (iDoublesCopied);
-		pSrc += 2 * a7 + -8 * (iDestWidth >> 2);
-		pDest += g_lPitch + -8 * (iDestWidth >> 2);
-		--_iSrcHeight;
-	} while (_iSrcHeight);
-	bResult = bNeedUnlockSurface;
-	if (bNeedUnlockSurface)
-		bResult = UnlockSurface();
-	return bResult;
+			if (*_pwSrc == 63519)                   // 0b1111100000011111
+			{
+				*_pwDest = 63519;                       // 0b1111100000011111
+			}
+			else
+			{
+				result = g_result.blueMask & ((*_pwSrc & 0x1F) << 11 >> m_wBBitFromLeftOffset);// iBBitMask
+				*_pwDest = g_result.redMask & ((unsigned __int16)(*_pwSrc & 0xF800) >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (*_pwSrc & 0x7E0) >> m_wGBitFromLeftOffset);
+			}
+			++_pwSrc;
+			++_pwDest;
+			--iItemsLeft;
+		} while (iItemsLeft);
+	}
+	return result;
 }
-#pragma endregion
 
+//----- (10001C80) --------------------------------------------------------
+// WORD red_mask = 0xF800;
+// WORD green_mask = 0x7E0;
+// WORD blue_mask = 0x1F;
+// 
+// BYTE red_value = (pixel & red_mask) >> 11;
+// BYTE green_value = (pixel & green_mask) >> 5;
+// BYTE blue_value = (pixel & blue_mask);
+INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
+{
+	int iItemsLeft; // ebx@1
+	char *_pSrc; // esi@2
+	char *_pDest; // edi@2
+	__int16 uCurrentColor; // ax@3
+	WORD uCurrentColorRed; // dx@3
+	__int16 _wCurrentColor; // bp@3
+	int result; // eax@3
 
-#pragma region Functions (todo)
+	iItemsLeft = iCount;
+	if (iCount > 0)
+	{
+		_pSrc = pSrc;
+		_pDest = pDest;
+		do
+		{
+			uCurrentColor = *(WORD*)_pSrc;
+			uCurrentColorRed = *(WORD*)_pSrc & 0xF800;
+			_pSrc += 4;
+			_wCurrentColor = uCurrentColor;
+			_pDest += 4;
+			result = g_result.blueMask & ((uCurrentColor & 0x1F) << 11 >> m_wBBitFromLeftOffset);
+			--iItemsLeft;
+			*((WORD*)_pDest - 2) = g_result.redMask & (uCurrentColorRed >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (_wCurrentColor & 0x7E0) >> m_wGBitFromLeftOffset);
+		} while (iItemsLeft);
+	}
+	return result;
+}
+
+//----- (100028F0) --------------------------------------------------------
+// 
+//       if ( x <= 0 )
+//         result = sub_100028F0(-x, -_y, x + 640, _y + 480, -_y);
+//       else
+//         result = sub_100028F0(0, -_y, 640 - x, _y + 480, -_y);
+// 
+//     ...
+//     
+//     if ( x <= 0 )
+//       result = sub_100028F0(-x, 0, x + 640, 480 - _y, -_y);
+//     else
+//       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
+// 
+int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+{
+	char *v5; // edi@1
+	int v6; // edx@1
+	unsigned int v7; // esi@1
+	int result; // eax@2
+	unsigned int v9; // edx@4
+	unsigned int v10; // ecx@5
+	unsigned int v11; // ecx@10
+	unsigned int v12; // edx@16
+	unsigned int v13; // ecx@17
+	unsigned int v14; // ecx@22
+	unsigned int v15; // [sp-10h] [bp-1Ch]@4
+	unsigned int v16; // [sp-10h] [bp-1Ch]@16
+
+	v5 = (char *)&g_result.a_buffer3[640 * y] + 2 * x + g_result.offset;
+	v6 = iHeight;
+	v7 = 2 * (640 - iWidth);
+	if (a5 < 0)
+	{
+		result = 0xFFE00000 * a5;
+		LOWORD(result) = -32 * a5;
+		if (y < g_result.surfaceHeight)
+		{
+			if (iHeight + y <= g_result.surfaceHeight)
+			{
+				do
+				{
+				LABEL_10:
+					v11 = iWidth >> 1;
+					do
+					{
+						*(DWORD*)v5 -= result;
+						v5 += 4;
+						--v11;
+					} while (v11);
+					v5 += v7;
+					--v6;
+				} while (v6);
+				return result;
+			}
+			v9 = iHeight - (iHeight + y - g_result.surfaceHeight);
+			v15 = iHeight + y - g_result.surfaceHeight;
+			do
+			{
+				v10 = iWidth >> 1;
+				do
+				{
+					*(DWORD*)v5 -= result;
+					v5 += 4;
+					--v10;
+				} while (v10);
+				v5 += v7;
+				--v9;
+			} while (v9);
+			v6 = v15;
+		}
+		v5 -= 614400;
+		goto LABEL_10;
+	}
+	result = a5 << 21;
+	LOWORD(result) = 32 * a5;
+	if (y >= g_result.surfaceHeight)
+		goto LABEL_21;
+	if (iHeight + y > g_result.surfaceHeight)
+	{
+		v12 = iHeight - (iHeight + y - g_result.surfaceHeight);
+		v16 = iHeight + y - g_result.surfaceHeight;
+		do
+		{
+			v13 = iWidth >> 1;
+			do
+			{
+				*(DWORD*)v5 += result;
+				v5 += 4;
+				--v13;
+			} while (v13);
+			v5 += v7;
+			--v12;
+		} while (v12);
+		v6 = v16;
+	LABEL_21:
+		v5 -= 614400;
+		goto LABEL_22;
+	}
+	do
+	{
+	LABEL_22:
+		v14 = iWidth >> 1;
+		do
+		{
+			*(DWORD*)v5 += result;
+			v5 += 4;
+			--v14;
+		} while (v14);
+		v5 += v7;
+		--v6;
+	} while (v6);
+	return result;
+}
+
 //----- (10002B10) --------------------------------------------------------
 int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
 {
@@ -1276,7 +1701,10 @@ signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int
 		result = UnlockSurface();
 	return result;
 }
+#pragma endregion
 
+
+#pragma region Functions (todo)
 //----- (10002C70) --------------------------------------------------------
 // struct X
 // {
@@ -7310,18 +7738,6 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	return result;
 }
 
-//----- (100087A1) --------------------------------------------------------
-__int16 __fastcall x_sub_100087A1(int a1, int a2)
-{
-	unsigned int v2; // eax@1
-
-	dword_1000E0AA += __PAIR__(-1, (unsigned __int16)g_result.redMask) & a2;
-	dword_1000E0AE += __PAIR__(-1, (unsigned __int16)g_result.greenMask) & a2;
-	v2 = __PAIR__(-1, (unsigned __int16)g_result.blueMask) & a2;
-	dword_1000E0B2 += __PAIR__(-1, (unsigned __int16)g_result.blueMask) & a2;
-	return v2;
-}
-
 // int __usercall x_sub_100088E9_DrawStruct@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6)
 int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 {
@@ -8892,189 +9308,6 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 	return result;
 }
 
-//----- (10001140) --------------------------------------------------------
-// WORD red_mask = 0xF800;
-// WORD green_mask = 0x7E0;
-// WORD blue_mask = 0x1F;
-// 
-// BYTE red_value = (pixel & red_mask) >> 11;
-// BYTE green_value = (pixel & green_mask) >> 5;
-// BYTE blue_value = (pixel & blue_mask);
-int SetPixelFormatMasks(int iRBitMask, int iGBitMask, int iBBitMask)
-{
-	signed int iRBitFromLeftOffset; // edx@1
-	signed int v4; // ebx@1
-	signed int iGBitFromLeftOffset; // ecx@6
-	signed int v6; // edx@6
-	unsigned __int16 v7; // bx@11
-	signed int iBBitFromLeftOffset; // ecx@11
-	signed int v9; // edx@11
-	signed __int16 v10; // cx@16
-	signed int iRBitFromRightOffset; // edx@16
-	signed __int16 v12; // cx@21
-	signed int iGBitFromRightOffset; // edx@21
-	signed __int16 v14; // cx@26
-	signed int iBBitFromRightOffset; // edx@26
-	int result; // eax@34
-
-	iRBitFromLeftOffset = 0;
-	LOWORD(g_result.redMask) = iRBitMask;       // 0xF800
-												// 0b1111100000000000
-	HIWORD(g_result.redMask) = iRBitMask;
-	LOWORD(g_result.greenMask) = iGBitMask;       // 0x7E0
-												  // 0b0000011111100000
-	HIWORD(g_result.greenMask) = iGBitMask;
-	LOWORD(g_result.blueMask) = iBBitMask;       // 0x1F
-												  // 0b0000000000011111
-	HIWORD(g_result.blueMask) = iBBitMask;
-	v4 = 0x8000;                                  // 0b1000000000000000
-	while (!((unsigned __int16)iRBitMask & (unsigned __int16)v4))
-	{
-		++iRBitFromLeftOffset;
-		v4 >>= 1;
-		if (iRBitFromLeftOffset >= 16)
-			goto LABEL_6;
-	}
-	LOWORD(dword_1000E464) = v4 | dword_1000E464;
-LABEL_6:
-	m_wRBitFromLeftOffset = iRBitFromLeftOffset;
-	iGBitFromLeftOffset = 0;
-	v6 = 0x8000;                                  // 0b1000000000000000
-	while (!((unsigned __int16)iGBitMask & (unsigned __int16)v6))
-	{
-		++iGBitFromLeftOffset;
-		v6 >>= 1;
-		if (iGBitFromLeftOffset >= 16)
-			goto LABEL_11;
-	}
-	LOWORD(dword_1000E464) = v6 | dword_1000E464;
-LABEL_11:
-	v7 = iGBitFromLeftOffset;
-	iBBitFromLeftOffset = 0;
-	m_wGBitFromLeftOffset = v7;
-	v9 = 0x8000;                                  // 0b1000000000000000
-	while (!((unsigned __int16)iBBitMask & (unsigned __int16)v9))
-	{
-		++iBBitFromLeftOffset;
-		v9 >>= 1;
-		if (iBBitFromLeftOffset >= 16)
-			goto LABEL_16;
-	}
-	LOWORD(dword_1000E464) = v9 | dword_1000E464;
-LABEL_16:
-	m_wBBitFromLeftOffset = iBBitFromLeftOffset;
-	v10 = 1;
-	iRBitFromRightOffset = 0;
-	while (!((unsigned __int16)iRBitMask & (unsigned __int16)v10))
-	{
-		++iRBitFromRightOffset;
-		v10 *= 2;
-		if (iRBitFromRightOffset >= 16)
-			goto LABEL_21;
-	}
-	LOWORD(dword_1000E460) = v10 | dword_1000E460;
-LABEL_21:
-	v12 = 1;
-	iGBitFromRightOffset = 0;
-	while (!((unsigned __int16)iGBitMask & (unsigned __int16)v12))
-	{
-		++iGBitFromRightOffset;
-		v12 *= 2;
-		if (iGBitFromRightOffset >= 16)
-			goto LABEL_26;
-	}
-	LOWORD(dword_1000E460) = v12 | dword_1000E460;
-LABEL_26:
-	v14 = 1;
-	iBBitFromRightOffset = 0;
-	while (!((unsigned __int16)iBBitMask & (unsigned __int16)v14))
-	{
-		++iBBitFromRightOffset;
-		v14 *= 2;
-		if (iBBitFromRightOffset >= 16)
-			goto LABEL_31;
-	}
-	LOWORD(dword_1000E460) = v14 | dword_1000E460;
-LABEL_31:
-	HIWORD(dword_1000E464) = dword_1000E464;
-	HIWORD(dword_1000E460) = dword_1000E460;
-	word_1000E46C = ~(_WORD)dword_1000E464;
-	word_1000E46E = ~(_WORD)dword_1000E464;
-	LOWORD(dword_1000E468) = ~(_WORD)dword_1000E460;
-	HIWORD(dword_1000E468) = ~(_WORD)dword_1000E460;
-	LOWORD(dword_1000E480) = (2 << (11 - v7)) + (5 << (11 - m_wBBitFromLeftOffset));
-	HIWORD(dword_1000E480) = (2 << (11 - v7)) + (5 << (11 - m_wBBitFromLeftOffset));
-	if ((unsigned __int16)m_wRBitFromLeftOffset <= v7)
-	{
-		if (v7 > (unsigned __int16)m_wBBitFromLeftOffset)
-		{
-			if ((unsigned __int16)m_wBBitFromLeftOffset <= (unsigned __int16)m_wRBitFromLeftOffset)
-				goto LABEL_34;
-		LABEL_37:
-			result = (unsigned __int16)iRBitMask | (unsigned __int16)iGBitMask | (iBBitMask << 16);
-			goto LABEL_39;
-		}
-	LABEL_38:
-		result = (unsigned __int16)iRBitMask | (unsigned __int16)iBBitMask | (iGBitMask << 16);
-		goto LABEL_39;
-	}
-	if (v7 > (unsigned __int16)m_wBBitFromLeftOffset)
-		goto LABEL_38;
-	if ((unsigned __int16)m_wBBitFromLeftOffset <= (unsigned __int16)m_wRBitFromLeftOffset)
-		goto LABEL_37;
-LABEL_34:
-	result = (unsigned __int16)iGBitMask | (unsigned __int16)iBBitMask | ((unsigned __int16)iRBitMask << 16);
-LABEL_39:
-	dword_1000E470 = result;
-	dword_1000E478 = result & ((unsigned __int16)dword_1000E464 | ((unsigned __int16)dword_1000E464 << 16));
-	return result;
-}
-
-__int32 __cdecl DrawHorizontalLineToPrimaryBuffer(int x, int y, int iSize, WORD wColor)
-{
-	__int32 result; // eax@1
-	int v5; // edx@1
-	LONG iLength; // ecx@1
-	__int16 *pBuffer1; // edi@8
-	unsigned __int32 iCount; // ecx@10
-	int iValueToSet; // edx@10
-	unsigned __int8 iInvertedCount; // cf@10
-	char *pDest; // edi@10
-	int i; // ecx@10
-
-	result = x;
-	HIWORD(v5) = HIWORD(y);
-	iLength = iSize + x - 1;
-	if (y >= g_result.screen.top && y <= g_result.screen.bottom)
-	{
-		if (x < g_result.screen.left)
-			result = g_result.screen.left;
-		if (iLength > g_result.screen.right)
-			iLength = g_result.screen.right;
-		if (result <= iLength)
-		{
-			pBuffer1 = &g_result.a_buffer1[640 * y + result + (g_result.offset >> 1)];
-			if (y >= g_result.surfaceHeight)
-				pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
-			LOWORD(v5) = wColor;
-			iCount = iLength - result + 1;
-			iValueToSet = v5 << 16;
-			LOWORD(iValueToSet) = wColor;
-			result = iValueToSet;
-			iInvertedCount = iCount & 1;
-			iCount >>= 1;
-			memset32(pBuffer1, iValueToSet, iCount);
-			pDest = (char *) &pBuffer1[2 * iCount];
-			for (i = iInvertedCount; i; --i)
-			{
-				*(WORD*) pDest = wColor;
-				pDest += 2;
-			}
-		}
-	}
-	return result;
-}
-
 __int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
 {
 	LONG v2; // ecx@1
@@ -9176,85 +9409,6 @@ __int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
 				}
 			}
 		}
-	}
-	return result;
-}
-
-
-//----- (10001BF0) --------------------------------------------------------
-// WORD red_mask = 0xF800;
-// WORD green_mask = 0x7E0;
-// WORD blue_mask = 0x1F;
-// 
-// BYTE red_value = (pixel & red_mask) >> 11;
-// BYTE green_value = (pixel & green_mask) >> 5;
-// BYTE blue_value = (pixel & blue_mask);
-int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
-{
-	int result; // eax@1
-	WORD *_pwDest; // esi@2
-	WORD *_pwSrc; // edi@2
-	int iItemsLeft; // ebx@2
-
-	result = iCount;
-	if (iCount > 0)
-	{
-		_pwDest = pwDest;
-		_pwSrc = pwSrc;
-		iItemsLeft = iCount;
-		do
-		{
-			if (*_pwSrc == 63519)                   // 0b1111100000011111
-			{
-				*_pwDest = 63519;                       // 0b1111100000011111
-			}
-			else
-			{
-				result = g_result.blueMask & ((*_pwSrc & 0x1F) << 11 >> m_wBBitFromLeftOffset);// iBBitMask
-				*_pwDest = g_result.redMask & ((unsigned __int16) (*_pwSrc & 0xF800) >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (*_pwSrc & 0x7E0) >> m_wGBitFromLeftOffset);
-			}
-			++_pwSrc;
-			++_pwDest;
-			--iItemsLeft;
-		} while (iItemsLeft);
-	}
-	return result;
-}
-
-//----- (10001C80) --------------------------------------------------------
-// WORD red_mask = 0xF800;
-// WORD green_mask = 0x7E0;
-// WORD blue_mask = 0x1F;
-// 
-// BYTE red_value = (pixel & red_mask) >> 11;
-// BYTE green_value = (pixel & green_mask) >> 5;
-// BYTE blue_value = (pixel & blue_mask);
-INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
-{
-	int iItemsLeft; // ebx@1
-	char *_pSrc; // esi@2
-	char *_pDest; // edi@2
-	__int16 uCurrentColor; // ax@3
-	WORD uCurrentColorRed; // dx@3
-	__int16 _wCurrentColor; // bp@3
-	int result; // eax@3
-
-	iItemsLeft = iCount;
-	if (iCount > 0)
-	{
-		_pSrc = pSrc;
-		_pDest = pDest;
-		do
-		{
-			uCurrentColor = *(WORD*) _pSrc;
-			uCurrentColorRed = *(WORD*) _pSrc & 0xF800;
-			_pSrc += 4;
-			_wCurrentColor = uCurrentColor;
-			_pDest += 4;
-			result = g_result.blueMask & ((uCurrentColor & 0x1F) << 11 >> m_wBBitFromLeftOffset);
-			--iItemsLeft;
-			*((WORD*) _pDest - 2) = g_result.redMask & (uCurrentColorRed >> m_wRBitFromLeftOffset) | result | g_result.greenMask & (32 * (_wCurrentColor & 0x7E0) >> m_wGBitFromLeftOffset);
-		} while (iItemsLeft);
 	}
 	return result;
 }
@@ -9460,120 +9614,5 @@ int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
 		}
 	}
 	return v5;
-}
-
-//----- (100028F0) --------------------------------------------------------
-// 
-//       if ( x <= 0 )
-//         result = sub_100028F0(-x, -_y, x + 640, _y + 480, -_y);
-//       else
-//         result = sub_100028F0(0, -_y, 640 - x, _y + 480, -_y);
-// 
-//     ...
-//     
-//     if ( x <= 0 )
-//       result = sub_100028F0(-x, 0, x + 640, 480 - _y, -_y);
-//     else
-//       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
-// 
-int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
-{
-	char *v5; // edi@1
-	int v6; // edx@1
-	unsigned int v7; // esi@1
-	int result; // eax@2
-	unsigned int v9; // edx@4
-	unsigned int v10; // ecx@5
-	unsigned int v11; // ecx@10
-	unsigned int v12; // edx@16
-	unsigned int v13; // ecx@17
-	unsigned int v14; // ecx@22
-	unsigned int v15; // [sp-10h] [bp-1Ch]@4
-	unsigned int v16; // [sp-10h] [bp-1Ch]@16
-
-	v5 = (char *) &g_result.a_buffer3[640 * y] + 2 * x + g_result.offset;
-	v6 = iHeight;
-	v7 = 2 * (640 - iWidth);
-	if (a5 < 0)
-	{
-		result = 0xFFE00000 * a5;
-		LOWORD(result) = -32 * a5;
-		if (y < g_result.surfaceHeight)
-		{
-			if (iHeight + y <= g_result.surfaceHeight)
-			{
-				do
-				{
-				LABEL_10:
-					v11 = iWidth >> 1;
-					do
-					{
-						*(DWORD*) v5 -= result;
-						v5 += 4;
-						--v11;
-					} while (v11);
-					v5 += v7;
-					--v6;
-				} while (v6);
-				return result;
-			}
-			v9 = iHeight - (iHeight + y - g_result.surfaceHeight);
-			v15 = iHeight + y - g_result.surfaceHeight;
-			do
-			{
-				v10 = iWidth >> 1;
-				do
-				{
-					*(DWORD*) v5 -= result;
-					v5 += 4;
-					--v10;
-				} while (v10);
-				v5 += v7;
-				--v9;
-			} while (v9);
-			v6 = v15;
-		}
-		v5 -= 614400;
-		goto LABEL_10;
-	}
-	result = a5 << 21;
-	LOWORD(result) = 32 * a5;
-	if (y >= g_result.surfaceHeight)
-		goto LABEL_21;
-	if (iHeight + y > g_result.surfaceHeight)
-	{
-		v12 = iHeight - (iHeight + y - g_result.surfaceHeight);
-		v16 = iHeight + y - g_result.surfaceHeight;
-		do
-		{
-			v13 = iWidth >> 1;
-			do
-			{
-				*(DWORD*) v5 += result;
-				v5 += 4;
-				--v13;
-			} while (v13);
-			v5 += v7;
-			--v12;
-		} while (v12);
-		v6 = v16;
-	LABEL_21:
-		v5 -= 614400;
-		goto LABEL_22;
-	}
-	do
-	{
-	LABEL_22:
-		v14 = iWidth >> 1;
-		do
-		{
-			*(DWORD*) v5 += result;
-			v5 += 4;
-			--v14;
-		} while (v14);
-		v5 += v7;
-		--v6;
-	} while (v6);
-	return result;
 }
 #pragma endregion
