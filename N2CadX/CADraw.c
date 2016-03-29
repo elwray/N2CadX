@@ -23,9 +23,9 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fnShutdownDirectDrawFullscreen = (IDirectDraw (*)()) &ShutdownDirectDrawFullscreen;
 	g_result.p_fnSetDisplayMode = (INT (*)(INT, INT)) &SetDisplayMode;
 	//g_pFnSetPixelFormatMask = (int)SetPixelFormatMasks;
-	//g_pFnReleaseSurface = (int)ReleaseSurface;
-	//g_pFnLockSurface = (int)LockSurface;
-	//g_pFnUnlockSurface = (int)UnlockSurface;
+	g_result.p_fnShutdownDirectDrawSurface = (IDirectDrawSurface* (*)()) &ShutdownDirectDrawSurface;
+	g_result.p_fnLockSurface = (BOOL (*)()) &LockSurface;
+	g_result.p_fnUnlockSurface = (INT (*)()) &UnlockSurface;
 	//g_pFnX_sub_10001D00 = (int)x_sub_10001D00;
 	//g_pFnX_sub_10001BF0 = (int)x_sub_10001BF0_CopyPixelsArray;
 	//g_pFnX_sub_10001C80 = (int)x_sub_10001C80_CopyPixelsArray;
@@ -42,7 +42,7 @@ SCADrawResult* CADraw_Init()
 	//g_pFnSub_1000586C = (int)sub_1000586C;
 	//g_pFnSub_10007678 = (int)sub_10007678;
 	//g_pFnSub_10001F90 = (int)CopyRectFromPrimaryBufferToSecondaryBuffer;
-	//g_pFnX_sub_10001850 = (int)DrawPointSecondaryBuffer;
+	g_result.p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
 	//g_pFnX_sub_10001EE0_call = (int)x_sub_10001EE0_call;
 	//g_pFnX_sub_10001F50_call = (int)x_sub_10001F50_call;
 	//g_pFnSub_100051AF = (int)sub_100051AF;
@@ -56,9 +56,9 @@ SCADrawResult* CADraw_Init()
 	//g_pFnSub_10007D0C = (int)sub_10007D0C;
 	//g_pFnSub_10007938 = (int)sub_10007938;
 	//g_pFnSub_10005493 = (int)sub_10005493;
-	//g_pFnX_sub_100017F0 = (int)DrawPointToPrimaryBuffer;
-	//g_pFnSub_100015E0 = (int)DrawFilledRectToPrimaryBuffer;
-	//g_pFnDrawRect = (int)DrawRectToPrimaryBuffer;
+	g_result.p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
+	g_result.p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
+	g_result.p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
 	//g_pFnDrawHorizontalLine = (int)DrawHorizontalLineToPrimaryBuffer;
 	//g_pFnDrawVerticalLine = (int)DrawVerticalLineToPrimaryBuffer;
 	//g_pFnSub_100016D0 = (int)x_sub_100016D0_DrawStruct;
@@ -222,6 +222,53 @@ INT DrawPointToBuffer2(INT x, INT y, WORD color)
 	g_result.a_buffer2[pos] = color;
 
 	return pos;
+}
+
+/*
+	Description: lock DirectDraw surface, save lPitch and pointer on surface data. If error occurs method try to
+		re-lock surface.
+	Address: 0x100029D0
+*/
+BOOL LockSurface()
+{
+	DDSURFACEDESC desc = { 0, };
+	desc.dwSize = sizeof(DDSURFACEDESC);
+
+	HRESULT result = IDirectDrawSurface_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+	if (FAILED(result))
+	{
+		while (true)
+		{
+			if (result != DDERR_SURFACEBUSY && result != DDERR_SURFACELOST)
+				return FALSE;
+
+			result = IDirectDrawSurface_Restore(g_result.p_ddrawSurface);
+			if (SUCCEEDED(result))
+			{
+				result = IDirectDrawSurface_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+				if (SUCCEEDED(result))
+					break;
+			}
+		}
+	}
+
+	g_result.pitch = desc.lPitch;
+	g_result.p_surface = ddSurfaceDescription.lpSurface;
+
+	return TRUE;
+}
+
+/*
+	Description: unlock DirectDraw surface, clear pointer on surface data and return lock result.
+	Address: 0x10002A50
+*/
+INT UnlockSurface()
+{
+	HRESULT result = IDirectDrawSurface_Unlock(g_result.p_ddrawSurface, NULL);
+
+	g_result.p_surface = NULL;
+
+	return result;
 }
 #pragma endregion
 
@@ -1015,60 +1062,10 @@ INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 
 
 #pragma region Functions (in progress)
-//----- (100029D0) --------------------------------------------------------
-BOOL __cdecl LockSurface()
-{
-	HRESULT hResult; // eax@1
-	BOOL result; // eax@6
-	DDSURFACEDESC ddSurfaceDescription; // [sp+1Ch] [bp-6Ch]@1
-
-	ddSurfaceDescription.dwSize = 108;
-	hResult = (*((int(__stdcall **)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))g_lpDDrawSurface->lpVtbl
-		+ 25))(                            // g_lpSurface->Lock(NULL, &ddSurfaceDescription, DDLOCK_WAIT, NULL)
-			g_lpDDrawSurface,
-			NULL,
-			&ddSurfaceDescription,
-			DDLOCK_WAIT,
-			NULL);
-	if (hResult >= 0)
-	{
-	LBL_LOCKED_SUCCESS:
-		g_lPitch = ddSurfaceDescription.lPitch;
-		g_result.p_surface = ddSurfaceDescription.lpSurface;
-		result = 1;
-	}
-	else
-	{
-		while (hResult == 0x887601AE
-			|| hResult == 0x887601C2
-			&& (*((int(__stdcall **)(_DWORD))g_lpDDrawSurface->lpVtbl + 27))(g_lpDDrawSurface) >= 0)// g_lpSurface->Restore()
-		{
-			hResult = (*((int(__stdcall **)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))g_lpDDrawSurface->lpVtbl
-				+ 25))(                        // g_lpSurface->Lock(NULL, &ddSurfaceDescription, DDLOCK_WAIT, NULL)
-					g_lpDDrawSurface,
-					0,
-					&ddSurfaceDescription,
-					1,
-					0);
-			if (hResult >= 0)
-				goto LBL_LOCKED_SUCCESS;
-		}
-		result = 0;
-	}
-	return result;
-}
-
-//----- (10002A50) --------------------------------------------------------
-int __cdecl UnlockSurface()
-{
-	int result; // eax@1
-
-	result = (*((int(__stdcall **)(_DWORD, _DWORD))g_lpDDrawSurface->lpVtbl + 32))(g_lpDDrawSurface, 0);// g_lpDDrawSurface->Unlock()
-	g_result.p_surface = 0;
-	return result;
-}
-
-//----- (10002A70) --------------------------------------------------------
+/*
+	Description: -
+	Address: 0x10002A70
+*/
 BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDestWidth, int iDestHeight, int iDestX, int iDestY, int a7, char *pSrcArray)
 {
 	BOOL bResult; // eax@2
@@ -1225,8 +1222,6 @@ signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int
 		result = UnlockSurface();
 	return result;
 }
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
 //----- (10002C70) --------------------------------------------------------
 // struct X
@@ -1747,23 +1742,6 @@ LABEL_7:
 		}
 	}
 }
-// 1000E400: using guessed type int dword_1000E400;
-// 1000E404: using guessed type int dword_1000E404;
-// 1000E408: using guessed type int dword_1000E408;
-// 1000E410: using guessed type int dword_1000E410;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E468: using guessed type int dword_1000E468;
-// 1000E46C: using guessed type __int16 word_1000E46C;
-// 1000E470: using guessed type int dword_1000E470;
-// 10018E98: using guessed type int dword_10018E98;
-// 10018E9C: using guessed type int dword_10018E9C;
-// 10018EA0: using guessed type int dword_10018EA0;
-// 10018EA4: using guessed type int dword_10018EA4;
-// 101DBDF0: using guessed type int dword_101DBDF0;
-// 101DBDF4: using guessed type int dword_101DBDF4;
-// 101DBDF8: using guessed type int dword_101DBDF8;
-// 101DBDFC: using guessed type int dword_101DBDFC;
 
 //----- (10003400) --------------------------------------------------------
 int __cdecl x_sub_10003400(unsigned __int8 *a1, int a2)
@@ -2129,20 +2107,6 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 	}
 	return result;
 }
-// 1000E034: using guessed type int dword_1000E034;
-// 1000E038: using guessed type int dword_1000E038;
-// 1000E03D: using guessed type int dword_1000E03D;
-// 1000E041: using guessed type int dword_1000E041;
-// 1000E045: using guessed type int dword_1000E045;
-// 1000E049: using guessed type char byte_1000E049;
-// 1000E04A: using guessed type __int16 rcRect_left;
-// 1000E04C: using guessed type __int16 rcRect_top;
-// 1000E04E: using guessed type __int16 rcRect_right;
-// 1000E050: using guessed type __int16 rcRect_bottom;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 10010784: using guessed type __int16 word_10010784[];
 
 //----- (100038EE) --------------------------------------------------------
 int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8)
@@ -2460,23 +2424,6 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 	}
 	return result;
 }
-// 1000E030: using guessed type int dword_1000E030;
-// 1000E034: using guessed type int dword_1000E034;
-// 1000E038: using guessed type int dword_1000E038;
-// 1000E03D: using guessed type int dword_1000E03D;
-// 1000E041: using guessed type int dword_1000E041;
-// 1000E045: using guessed type int dword_1000E045;
-// 1000E049: using guessed type char byte_1000E049;
-// 1000E04A: using guessed type __int16 rcRect_left;
-// 1000E04C: using guessed type __int16 rcRect_top;
-// 1000E04E: using guessed type __int16 rcRect_right;
-// 1000E050: using guessed type __int16 rcRect_bottom;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
 
 //----- (10003D18) --------------------------------------------------------
 int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
@@ -2775,19 +2722,6 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 	}
 	return result;
 }
-// 1000E034: using guessed type int dword_1000E034;
-// 1000E038: using guessed type int dword_1000E038;
-// 1000E03D: using guessed type int dword_1000E03D;
-// 1000E041: using guessed type int dword_1000E041;
-// 1000E045: using guessed type int dword_1000E045;
-// 1000E049: using guessed type char byte_1000E049;
-// 1000E04A: using guessed type __int16 rcRect_left;
-// 1000E04C: using guessed type __int16 rcRect_top;
-// 1000E04E: using guessed type __int16 rcRect_right;
-// 1000E050: using guessed type __int16 rcRect_bottom;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
 //----- (100040E6) --------------------------------------------------------
 int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
@@ -3055,23 +2989,6 @@ int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 	}
 	return result;
 }
-// 1000E030: using guessed type int dword_1000E030;
-// 1000E034: using guessed type int dword_1000E034;
-// 1000E038: using guessed type int dword_1000E038;
-// 1000E041: using guessed type int dword_1000E041;
-// 1000E045: using guessed type int dword_1000E045;
-// 1000E049: using guessed type char byte_1000E049;
-// 1000E04A: using guessed type __int16 rcRect_left;
-// 1000E04C: using guessed type __int16 rcRect_top;
-// 1000E04E: using guessed type __int16 rcRect_right;
-// 1000E050: using guessed type __int16 rcRect_bottom;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
-// 1000E468: using guessed type int dword_1000E468;
 
 //----- (10004460) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_10004460@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, int a7)".
@@ -3549,25 +3466,6 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 	}
 	return result;
 }
-// 1000495B: using guessed type int __cdecl loc_1000495B(int, int, int);
-// 10004967: using guessed type int __cdecl loc_10004967(int, int, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_result.widthInBytes;
-// 1000E460: using guessed type int dword_1000E460;
 
 //----- (10004AB6) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_10004AB6@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, __int16 a7, int a8)".
@@ -3825,28 +3723,6 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	}
 	return result;
 }
-// 10004CA9: using guessed type int __cdecl loc_10004CA9(int, int, __int16, int);
-// 10004CB5: using guessed type int __cdecl loc_10004CB5(int, int, __int16, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E080: using guessed type int dword_1000E080;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_result.widthInBytes;
-// 1000E460: using guessed type int dword_1000E460;
-// 1000E468: using guessed type int dword_1000E468;
-// 1000E480: using guessed type int dword_1000E480;
 
 //----- (10004E80) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_10004E80@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, __int16 a7, int a8, int a9)".
@@ -4078,25 +3954,6 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	}
 	return result;
 }
-// 10005069: using guessed type int __cdecl loc_10005069(int, int, __int16, int, int);
-// 10005075: using guessed type int __cdecl loc_10005075(int, int, __int16, int, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E080: using guessed type int dword_1000E080;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_result.widthInBytes;
 
 //----- (100051AF) --------------------------------------------------------
 // TODO: previous signature is "int __usercall sub_100051AF@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, int a7, int a8)".
@@ -4315,24 +4172,6 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 	}
 	return result;
 }
-// 1000537A: using guessed type int __cdecl loc_1000537A(int, int, int, int);
-// 10005386: using guessed type int __cdecl loc_10005386(int, int, int, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_result.widthInBytes;
 
 //----- (10005493) --------------------------------------------------------
 // TODO: original signature is "int __usercall sub_10005493@<eax > (int a1@<ebx > , int a2@<ebp > , int a3@<edi > , int a4@<esi > , int a5, int a6, int a7, int a8, int a9)".
@@ -7416,31 +7255,6 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 	}
 	return result;
 }
-// 10007F1D: using guessed type int __cdecl loc_10007F1D(int, int, __int16, int, int);
-// 10007F29: using guessed type int __cdecl loc_10007F29(int, int, __int16, int, int);
-// 1000E05C: using guessed type int dword_1000E05C;
-// 1000E060: using guessed type int dword_1000E060;
-// 1000E064: using guessed type int dword_1000E064;
-// 1000E06C: using guessed type int (__cdecl *dword_1000E06C)(_DWORD, _DWORD);
-// 1000E070: using guessed type SMALL_RECT g_rcScreenSmallRect;
-// 1000E078: using guessed type int dword_1000E078;
-// 1000E07C: using guessed type int dword_1000E07C;
-// 1000E080: using guessed type int dword_1000E080;
-// 1000E084: using guessed type int dword_1000E084;
-// 1000E088: using guessed type int dword_1000E088;
-// 1000E08C: using guessed type int dword_1000E08C;
-// 1000E090: using guessed type int dword_1000E090;
-// 1000E094: using guessed type int dword_1000E094;
-// 1000E09A: using guessed type int dword_1000E09A;
-// 1000E09E: using guessed type int dword_1000E09E;
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-// 1000E438: using guessed type int g_result.widthInBytes;
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
-// 1000E464: using guessed type int dword_1000E464;
 
 //----- (100087A1) --------------------------------------------------------
 __int16 __fastcall x_sub_100087A1(int a1, int a2)
@@ -9352,12 +9166,6 @@ int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount
 	}
 	return result;
 }
-// 1000E44C: using guessed type int g_result.redMask;
-// 1000E450: using guessed type int g_result.greenMask;
-// 1000E454: using guessed type int g_result.blueMask;
-// 1000E458: using guessed type __int16 m_wRBitFromLeftOffset;
-// 1000E45A: using guessed type __int16 m_wGBitFromLeftOffset;
-// 1000E45C: using guessed type __int16 m_wBBitFromLeftOffset;
 
 //----- (10001C80) --------------------------------------------------------
 // WORD red_mask = 0xF800;
@@ -9396,18 +9204,6 @@ INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 	}
 	return result;
 }
-
-
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-
-//----- (10001EA0) --------------------------------------------------------
-
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-
-//----- (10002030) --------------------------------------------------------
-
 
 //----- (100024C0) --------------------------------------------------------
 int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
@@ -9611,28 +9407,6 @@ int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
 	}
 	return v5;
 }
-// 100024C0: using guessed type int __cdecl x_sub_100024C0(int, int, int, int, int);
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E438: using guessed type int g_result.widthInBytes;
-// 10018E7C: using guessed type int g_pFnReleaseDirectDraw;
-// 10018E80: using guessed type int dword_10018E80;
-// 10018E84: using guessed type int dword_10018E84;
-// 10018E88: using guessed type int dword_10018E88;
-// 10018E8C: using guessed type int dword_10018E8C;
-// 10018E90: using guessed type int dword_10018E90;
-// 10018E94: using guessed type int dword_10018E94;
-
-//----- (100027C0) --------------------------------------------------------
-
-// 1000E418: using guessed type RECT g_result.screen;
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
-
-//----- (10002860) --------------------------------------------------------
-
-// 1000E428: using guessed type int g_result.offset;
-// 1000E42C: using guessed type int g_result.surfaceHeight;
 
 //----- (100028F0) --------------------------------------------------------
 // 

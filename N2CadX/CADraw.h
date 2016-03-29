@@ -55,61 +55,61 @@ typedef struct _SCADrawResult
 	INT (*p_fnInitializeDirectDraw)(HWND handle, BOOL fullscreen);
 	IDirectDraw* (*p_fnShutdownDirectDrawFullscreen)();
 	INT (*p_fnSetDisplayMode)(INT, INT);
-	INT (*p_Fn1)(); // g_pFnSetPixelFormatMask
-	INT (*p_Fn2)(); // g_pFnReleaseSurface
-	INT (*p_Fn3)(); // g_pFnLockSurface
-	INT (*p_Fn4)(); // g_pFnUnlockSurface
-	INT (*p_Fn5)(); // g_pFnX_sub_10001D00
-	INT (*p_Fn6)(); // g_pFnX_sub_10001BF0
-	INT (*p_Fn7)(); // g_pFnX_sub_10001C80
-	INT (*p_Fn8)(); // g_pFnX_sub_10003400
-	INT (*p_Fn9)(); // g_pFnX_sub_10003490
-	INT (*p_Fn10)(); // g_pFnX_sub_10003430
-	INT (*p_Fn11)(); // g_pFnX_sub_10001EA0_call
-	INT (*p_Fn12)(); // g_pFnX_sub_10001F20_call
-	INT (*p_Fn13)(); // g_pFnSub_10004460
-	INT (*p_Fn14)(); // g_pFnSub_10004786
-	INT (*p_Fn15)(); // g_pFnSub_10004AB6
-	INT (*p_Fn16)(); // g_pFnSub_10005F01
-	INT (*p_Fn17)(); // g_pFnSub_10005B96
-	INT (*p_Fn18)(); // g_pFnSub_1000586C
-	INT (*p_Fn19)(); // g_pFnSub_10007678
-	INT (*p_Fn20)(); // g_pFnSub_10001F90
-	INT (*p_Fn21)(); // g_pFnX_sub_10001850
-	INT (*p_Fn22)(); // g_pFnX_sub_10001EE0_call
-	INT (*p_Fn23)(); // g_pFnX_sub_10001F50_call
-	INT (*p_Fn24)(); // g_pFnSub_10003090_1
-	INT (*p_Fn25)(); // g_pFnSub_100051AF
-	INT (*p_Fn26)(); // g_pFnSub_10006586
-	INT (*p_Fn27)(); // g_pFnSub_1000625D
-	INT (*p_Fn28)(); // g_pFnSub_10004E80
-	INT (*p_Fn29)(); // g_pFnSub_10006C48
-	INT (*p_Fn30)(); // g_pFnSub_10006FE2
-	INT (*p_Fn31)(); // g_pFnSub_1000687D
-	INT (*p_Fn32)(); // g_pFnSub_100073B2
-	INT (*p_Fn33)(); // g_pFnSub_10007D0C
-	INT (*p_Fn34)(); // g_pFnSub_10007938
-	INT (*p_Fn35)(); // g_pFnSub_10005493
-	INT (*p_Fn36)(); // g_pFnX_sub_100017F0
-	INT (*p_Fn37)(); // g_pFnSub_100015E0
-	INT (*p_Fn38)(); // g_pFnDrawRect
-	INT (*p_Fn39)(); // g_pFnDrawHorizontalLine
-	INT (*p_Fn40)(); // g_pFnDrawVerticalLine
-	INT (*p_Fn41)(); // g_pFnSub_100016D0
-	INT (*p_Fn42)(); // g_pFnSub_100024C0
-	INT (*p_Fn43)(); // g_pFnSub_10002030
-	INT (*p_Fn44)(); // g_pFnSub_10002C70
-	INT (*p_Fn45)(); // g_pFnCopyFromPrimaryBufferToDirectDrawSurface
-	INT (*p_Fn46)(); // g_pFnSub_10003090_2
-	INT (*p_Fn47)(); // g_pFnDrawImage
-	INT (*p_Fn48)(); // g_pFnSub_10002860
-	INT (*p_Fn49)(); // g_pFnSub_100027C0
-	INT (*p_Fn50)(); // g_pFnCopyDataToDirectDrawSurface
-	INT (*p_Fn51)(); // g_pFnSub_10002B10
-	INT (*p_Fn52)(); // g_pFnSub_100088E9
-	INT (*p_Fn53)(); // g_pFnSub_10009F13
-	INT (*p_Fn54)(); // g_pFnSub_100098D3
-	IDirectDraw (*p_fnShutdownDirectDraw)(); // g_pFnReleaseDirectDraw
+	INT (*p_fn1)(); // g_pFnSetPixelFormatMask
+	IDirectDrawSurface* (*p_fnShutdownDirectDrawSurface)();
+	BOOL (*p_fnLockSurface)();
+	INT (*p_fnUnlockSurface)();
+	INT (*p_fn5)(); // g_pFnX_sub_10001D00
+	INT (*p_fn6)(); // g_pFnX_sub_10001BF0
+	INT (*p_fn7)(); // g_pFnX_sub_10001C80
+	INT (*p_fn8)(); // g_pFnX_sub_10003400
+	INT (*p_fn9)(); // g_pFnX_sub_10003490
+	INT (*p_fn10)(); // g_pFnX_sub_10003430
+	INT (*p_fn11)(); // g_pFnX_sub_10001EA0_call
+	INT (*p_fn12)(); // g_pFnX_sub_10001F20_call
+	INT (*p_fn13)(); // g_pFnSub_10004460
+	INT (*p_fn14)(); // g_pFnSub_10004786
+	INT (*p_fn15)(); // g_pFnSub_10004AB6
+	INT (*p_fn16)(); // g_pFnSub_10005F01
+	INT (*p_fn17)(); // g_pFnSub_10005B96
+	INT (*p_fn18)(); // g_pFnSub_1000586C
+	INT (*p_fn19)(); // g_pFnSub_10007678
+	INT (*p_fn20)(); // g_pFnSub_10001F90
+	INT(*p_fnDrawPointToBuffer2)(INT, INT, WORD);
+	INT (*p_fn22)(); // g_pFnX_sub_10001EE0_call
+	INT (*p_fn23)(); // g_pFnX_sub_10001F50_call
+	INT (*p_fn24)(); // g_pFnSub_10003090_1
+	INT (*p_fn25)(); // g_pFnSub_100051AF
+	INT (*p_fn26)(); // g_pFnSub_10006586
+	INT (*p_fn27)(); // g_pFnSub_1000625D
+	INT (*p_fn28)(); // g_pFnSub_10004E80
+	INT (*p_fn29)(); // g_pFnSub_10006C48
+	INT (*p_fn30)(); // g_pFnSub_10006FE2
+	INT (*p_fn31)(); // g_pFnSub_1000687D
+	INT (*p_fn32)(); // g_pFnSub_100073B2
+	INT (*p_fn33)(); // g_pFnSub_10007D0C
+	INT (*p_fn34)(); // g_pFnSub_10007938
+	INT (*p_fn35)(); // g_pFnSub_10005493
+	INT (*p_fnDrawPointToBuffer1)(INT, INT, WORD);
+	INT (*p_fnDrawFilledRectToBuffer1)(INT, INT, INT, INT, WORD);
+	INT (*p_fnDrawEmptyRectToBuffer1)(INT, INT, INT, INT, WORD);
+	INT (*p_fn39)(); // g_pFnDrawHorizontalLine
+	INT (*p_fn40)(); // g_pFnDrawVerticalLine
+	INT (*p_fn41)(); // g_pFnSub_100016D0
+	INT (*p_fn42)(); // g_pFnSub_100024C0
+	INT (*p_fn43)(); // g_pFnSub_10002030
+	INT (*p_fn44)(); // g_pFnSub_10002C70
+	INT (*p_fn45)(); // g_pFnCopyFromPrimaryBufferToDirectDrawSurface
+	INT (*p_fn46)(); // g_pFnSub_10003090_2
+	INT (*p_fn47)(); // g_pFnDrawImage
+	INT (*p_fn48)(); // g_pFnSub_10002860
+	INT (*p_fn49)(); // g_pFnSub_100027C0
+	INT (*p_fn50)(); // g_pFnCopyDataToDirectDrawSurface
+	INT (*p_fn51)(); // g_pFnSub_10002B10
+	INT (*p_fn52)(); // g_pFnSub_100088E9
+	INT (*p_fn53)(); // g_pFnSub_10009F13
+	INT (*p_fn54)(); // g_pFnSub_100098D3
+	IDirectDraw (*p_fnShutdownDirectDraw)();
 
 	DWORD dword_10018E80;
 	DWORD dword_10018E84;
@@ -146,6 +146,8 @@ IDirectDraw* ShutdownDirectDrawFullscreen();
 INT SetDisplayMode(INT width, INT height);
 INT DrawPointToBuffer1(INT x, INT y, WORD color);
 INT DrawPointToBuffer2(INT x, INT y, WORD color);
+BOOL LockSurface();
+INT UnlockSurface();
 
 // Code generated by Hex Rays.
 INT DrawImageToPrimaryBuffer(INT sourceX, INT sourceY, INT a3, INT a4, INT destX, INT destY, INT destWidth,
@@ -158,9 +160,9 @@ INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6);
 INT x_sub_10001F20_call(INT a1, INT a2, INT a3);
 INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
 INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight);
-INT DrawVerticalLineToBuffer1(INT x, INT y, int iSize, __int16 a4);
+INT DrawVerticalLineToBuffer1(INT x, INT y, INT size, INT color);
 INT x_sub_100027C0();
 INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT width, INT height);
-INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD a5);
+INT DrawEmptyRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
 
 #endif // CADRAW_H
