@@ -278,7 +278,7 @@ bFullscreen	= dword	ptr  8
 
 		push	esi
 		push	edi
-		call	ShutdownDirectDrawFullscreen
+		call	ReleaseDirectDrawFullscreen
 		push	0		; pUnkOuter
 		push	offset g_lpDirectDraw ;	lplpDD
 		push	0		; lpGUID
@@ -337,8 +337,8 @@ CreateDirectDrawAndSetCooperativeLevel endp
 ; =============== S U B	R O U T	I N E =======================================
 
 
-ReleaseSurface	proc near		; CODE XREF: ShutdownDirectDrawFullscreenp
-					; ShutdownDirectDrawp ...
+ReleaseSurface	proc near		; CODE XREF: ReleaseDirectDrawFullscreenp
+					; ReleaseDirectDrawp ...
 		mov	eax, g_lpDDrawSurface.lpVtbl
 		test	eax, eax
 		jz	short locret_100010D9
@@ -357,7 +357,7 @@ ReleaseSurface	endp
 ; =============== S U B	R O U T	I N E =======================================
 
 
-ShutdownDirectDrawFullscreen proc near	; CODE XREF: CreateDirectDrawAndSetCooperativeLevel+2p
+ReleaseDirectDrawFullscreen proc near	; CODE XREF: CreateDirectDrawAndSetCooperativeLevel+2p
 					; DATA XREF: CADraw_Init+46o
 		call	ReleaseSurface
 		mov	eax, g_lpDirectDraw
@@ -371,15 +371,15 @@ ShutdownDirectDrawFullscreen proc near	; CODE XREF: CreateDirectDrawAndSetCooper
 		call	dword ptr [ecx+4Ch]
 		mov	eax, g_lpDirectDraw
 
-loc_10001103:				; CODE XREF: ShutdownDirectDrawFullscreen+16j
+loc_10001103:				; CODE XREF: ReleaseDirectDrawFullscreen+16j
 		mov	edx, [eax]
 		push	eax
 		call	dword ptr [edx+8]
 		mov	g_lpDirectDraw,	0
 
-locret_10001113:			; CODE XREF: ShutdownDirectDrawFullscreen+Cj
+locret_10001113:			; CODE XREF: ReleaseDirectDrawFullscreen+Cj
 		retn
-ShutdownDirectDrawFullscreen endp
+ReleaseDirectDrawFullscreen endp
 
 ; ---------------------------------------------------------------------------
 		align 10h
@@ -387,7 +387,7 @@ ShutdownDirectDrawFullscreen endp
 ; =============== S U B	R O U T	I N E =======================================
 
 
-ShutdownDirectDraw proc	near		; DATA XREF: CADraw_Init+262o
+ReleaseDirectDraw proc near		; DATA XREF: CADraw_Init+262o
 		call	ReleaseSurface
 		mov	eax, g_lpDirectDraw
 		test	eax, eax
@@ -397,9 +397,9 @@ ShutdownDirectDraw proc	near		; DATA XREF: CADraw_Init+262o
 		call	dword ptr [ecx+8]
 		mov	g_lpDirectDraw,	0
 
-locret_1000113E:			; CODE XREF: ShutdownDirectDraw+Cj
+locret_1000113E:			; CODE XREF: ReleaseDirectDraw+Cj
 		retn
-ShutdownDirectDraw endp
+ReleaseDirectDraw endp
 
 ; ---------------------------------------------------------------------------
 		align 10h
@@ -1241,8 +1241,8 @@ x_sub_100016D0_DrawStruct endp
 ; =============== S U B	R O U T	I N E =======================================
 
 
-; int __cdecl DrawPointToPrimaryBuffer(int x, int y, __int16 sColor)
-DrawPointToPrimaryBuffer proc near	; CODE XREF: sub_10002030+54p
+; int __cdecl DrawPointToBuffer1(int x,	int y, __int16 sColor)
+DrawPointToBuffer1 proc	near		; CODE XREF: sub_10002030+54p
 					; sub_10002030+E5p ...
 
 x		= dword	ptr  4
@@ -1274,14 +1274,14 @@ sColor		= word ptr  0Ch
 		jl	short loc_1000183D
 		sub	eax, 4B000h
 
-loc_1000183D:				; CODE XREF: DrawPointToPrimaryBuffer+46j
+loc_1000183D:				; CODE XREF: DrawPointToBuffer1+46j
 		mov	cx, [esp+sColor]
 		mov	g_aBufferPrimary16[eax*2], cx
 
-locret_1000184A:			; CODE XREF: DrawPointToPrimaryBuffer+Bj
-					; DrawPointToPrimaryBuffer+18j	...
+locret_1000184A:			; CODE XREF: DrawPointToBuffer1+Bj
+					; DrawPointToBuffer1+18j ...
 		retn
-DrawPointToPrimaryBuffer endp
+DrawPointToBuffer1 endp
 
 ; ---------------------------------------------------------------------------
 		align 10h
@@ -1289,8 +1289,8 @@ DrawPointToPrimaryBuffer endp
 ; =============== S U B	R O U T	I N E =======================================
 
 
-; int __cdecl DrawPointSecondaryBuffer(int x, int y, __int16 sColor)
-DrawPointSecondaryBuffer proc near	; DATA XREF: CADraw_Init+122o
+; int __cdecl DrawPointToBuffer2(int x,	int y, __int16 sColor)
+DrawPointToBuffer2 proc	near		; DATA XREF: CADraw_Init+122o
 
 x		= dword	ptr  4
 y		= dword	ptr  8
@@ -1321,14 +1321,14 @@ sColor		= word ptr  0Ch
 		jl	short loc_1000189D
 		sub	eax, 4B000h
 
-loc_1000189D:				; CODE XREF: DrawPointSecondaryBuffer+46j
+loc_1000189D:				; CODE XREF: DrawPointToBuffer2+46j
 		mov	cx, [esp+sColor]
 		mov	g_aBufferSecondary16[eax*2], cx
 
-locret_100018AA:			; CODE XREF: DrawPointSecondaryBuffer+Bj
-					; DrawPointSecondaryBuffer+18j	...
+locret_100018AA:			; CODE XREF: DrawPointToBuffer2+Bj
+					; DrawPointToBuffer2+18j ...
 		retn
-DrawPointSecondaryBuffer endp
+DrawPointToBuffer2 endp
 
 ; ---------------------------------------------------------------------------
 		align 10h
@@ -1455,7 +1455,7 @@ CADraw_Init	proc near		; DATA XREF: .rdata:off_1000D888o
 		mov	g_pFnSub_10003090_1, eax
 		mov	g_pFnSub_10003090_2, eax
 		mov	g_pFnCreateDirectDrawAndSetCooperativeLevel, offset CreateDirectDrawAndSetCooperativeLevel
-		mov	p_fnShutwodnDirectDrawFullscreen, offset ShutdownDirectDrawFullscreen
+		mov	g_fnShutdownDirectDrawFullscreen, offset ReleaseDirectDrawFullscreen
 		mov	g_pFnSetDisplayMode, offset SetDisplayMode
 		mov	g_pFnSetPixelFormatMask, offset	SetPixelFormatMasks ; WORD red_mask = 0xF800;
 					; WORD green_mask = 0x7E0;
@@ -1496,7 +1496,7 @@ CADraw_Init	proc near		; DATA XREF: .rdata:off_1000D888o
 		mov	g_pFnSub_10007678, offset sub_10007678
 		mov	g_pFnSub_10001F90, offset CopyRectFromPrimaryBufferToSecondaryBuffer ; Copy from primary buffer	to secondary
 					;
-		mov	g_pFnX_sub_10001850, offset DrawPointSecondaryBuffer
+		mov	g_pFnX_sub_10001850, offset DrawPointToBuffer2
 		mov	g_pFnX_sub_10001EE0_call, offset x_sub_10001EE0_call
 		mov	g_pFnX_sub_10001F50_call, offset x_sub_10001F50_call
 		mov	g_pFnSub_100051AF, offset sub_100051AF
@@ -1510,7 +1510,7 @@ CADraw_Init	proc near		; DATA XREF: .rdata:off_1000D888o
 		mov	g_pFnSub_10007D0C, offset sub_10007D0C
 		mov	g_pFnSub_10007938, offset sub_10007938
 		mov	g_pFnSub_10005493, offset sub_10005493
-		mov	g_pFnX_sub_100017F0, offset DrawPointToPrimaryBuffer
+		mov	g_pFnX_sub_100017F0, offset DrawPointToBuffer1
 		mov	g_pFnSub_100015E0, offset DrawFilledRectToPrimaryBuffer
 		mov	g_pFnDrawRect, offset DrawRectToPrimaryBuffer
 		mov	g_pFnDrawHorizontalLine, offset	DrawHorizontalLineToPrimaryBuffer
@@ -1546,7 +1546,7 @@ CADraw_Init	proc near		; DATA XREF: .rdata:off_1000D888o
 		mov	g_pFnSub_100088E9, offset x_sub_100088E9_DrawStruct
 		mov	g_pFnSub_10009F13, offset x_sub_10009F13_DrawStruct
 		mov	g_pFnSub_100098D3, offset x_sub_100098D3_DrawStruct
-		mov	g_pFnReleaseDirectDraw,	offset ShutdownDirectDraw
+		mov	g_pFnReleaseDirectDraw,	offset ReleaseDirectDraw
 		mov	eax, offset g_rcScreenRect
 		retn
 CADraw_Init	endp
@@ -2218,7 +2218,7 @@ loc_1000206F:				; CODE XREF: sub_10002030+ABj
 		push	eax
 		push	ecx
 		push	edx
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	ecx, [esp+2Ch+arg_10]
 		mov	eax, [esp+2Ch+var_8]
 		add	esp, 0Ch
@@ -2270,7 +2270,7 @@ loc_10002100:				; CODE XREF: sub_10002030+128j
 		push	ecx
 		push	edx
 		push	eax
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	ecx, [esp+2Ch+arg_10]
 		add	esp, 0Ch
 
@@ -2326,7 +2326,7 @@ loc_10002191:				; CODE XREF: sub_10002030+15Bj
 		push	eax
 		push	ecx
 		push	edx
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	eax, [esp+2Ch+var_8]
 		add	esp, 0Ch
 
@@ -2378,7 +2378,7 @@ loc_1000221E:				; CODE XREF: sub_10002030+23Dj
 		push	ecx
 		push	edx
 		push	eax
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	eax, [esp+2Ch+arg_10]
 		add	esp, 0Ch
 
@@ -2422,7 +2422,7 @@ loc_1000229B:				; CODE XREF: sub_10002030+2D7j
 		push	eax
 		push	ecx
 		push	edx
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	eax, [esp+2Ch+arg_10]
 		add	esp, 0Ch
 
@@ -2478,7 +2478,7 @@ loc_10002330:				; CODE XREF: sub_10002030+368j
 		push	edx
 		push	eax
 		push	ecx
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	eax, [esp+2Ch+var_8]
 		add	esp, 0Ch
 
@@ -2531,7 +2531,7 @@ loc_100023C7:				; CODE XREF: sub_10002030+3FEj
 		push	edx
 		push	eax
 		push	ecx
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	ecx, [esp+2Ch+arg_10]
 		mov	eax, [esp+2Ch+var_4]
 		add	esp, 0Ch
@@ -2589,7 +2589,7 @@ loc_10002463:				; CODE XREF: sub_10002030+42Dj
 		push	eax
 		push	ebx
 		push	edi
-		call	DrawPointToPrimaryBuffer
+		call	DrawPointToBuffer1
 		mov	eax, [esp+2Ch+var_8]
 		add	esp, 0Ch
 
@@ -58230,7 +58230,7 @@ aTemp512Buff3	db 200h	dup(?)		; DATA XREF: sub_10004786+1Co
 g_hWnd		dd ?			; DATA XREF: CreateDirectDrawAndSetCooperativeLevel+56w
 					; SetDisplayMode:loc_10001376r
 g_bFullscreen	dd ?			; DATA XREF: CreateDirectDrawAndSetCooperativeLevel:loc_100010A0w
-					; ShutdownDirectDrawFullscreen+Er ...
+					; ReleaseDirectDrawFullscreen+Er ...
 ; IDirectDraw *g_lpDirectDraw
 g_lpDirectDraw	dd ?			; DATA XREF: CreateDirectDrawAndSetCooperativeLevel+9o
 					; CreateDirectDrawAndSetCooperativeLevel+22r ...
@@ -58241,7 +58241,7 @@ g_lpDDrawSurface IDirectDrawSurface <?>	; DATA XREF: ReleaseSurfacer
 g_pFnInitialize	dd ?			; DATA XREF: SetDisplayMode+AFr
 					; CADraw_Init+28w
 g_pFnCreateDirectDrawAndSetCooperativeLevel dd ? ; DATA	XREF: CADraw_Init+3Cw
-p_fnShutwodnDirectDrawFullscreen dd ?	; DATA XREF: CADraw_Init+46w
+g_fnShutdownDirectDrawFullscreen dd ?	; DATA XREF: CADraw_Init+46w
 g_pFnSetDisplayMode dd ?		; DATA XREF: CADraw_Init+50w
 g_pFnSetPixelFormatMask	dd ?		; DATA XREF: CADraw_Init+5Aw
 g_pFnReleaseSurface dd ?		; DATA XREF: CADraw_Init+64w
@@ -59638,7 +59638,7 @@ unk_100AEEA8	db    ?	;		; DATA XREF: x_sub_100024C0+19o
 		db    ?	;
 		db    ?	;
 ; __int16 g_aBufferSecondary16[307200]
-g_aBufferSecondary16 dw	4B000h dup(?)	; DATA XREF: DrawPointSecondaryBuffer+52w
+g_aBufferSecondary16 dw	4B000h dup(?)	; DATA XREF: DrawPointToBuffer2+52w
 					; CADraw_Init+Ao ...
 		db    ?	;
 		db    ?	;

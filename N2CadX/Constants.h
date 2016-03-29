@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define BitsPerPixel16 16
+#define ScreenWidth 640
+#define ScreenHeight 480
+#define ScreenBpp 16
 
 #endif
