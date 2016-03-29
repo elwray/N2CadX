@@ -2,8 +2,62 @@
 #include "CADraw.h"
 #include "Constants.h"
 
+struct _SGlobalData
+{
+	DWORD dword_1000E030;
+	DWORD dword_1000E034;
+	DWORD dword_1000E038;
+	BYTE atSign;
+	DWORD dword_1000E03D;
+	DWORD dword_1000E041;
+	DWORD dword_1000E045;
+	BYTE byte_1000E049;
+	RECT rect;
 
-static SCADrawResult g_result = { 0, };
+#pragma pack(4)
+	DWORD dword_1000E054;
+	BYTE unknown1;
+	BYTE unknown2;
+	BYTE unknown3;
+	BYTE unknown4;
+	DWORD dword_1000E05C;
+	DWORD dword_1000E060;
+	DWORD dword_1000E064;
+	DWORD dword_1000E068;
+	DWROD dword_1000E06C; // int (__cdecl *dword_1000E06C)(_DWORD, _DWORD)
+	SMALL_RECT smallRect;
+	DWORD dword_1000E078;
+	DWORD dword_1000E07C;
+	DWORD dword_1000E080;
+	DWORD dword_1000E084;
+	DWORD dword_1000E088;
+	DWORD dword_1000E08C;
+	DWORD dword_1000E090;
+	DWORD dword_1000E094;
+	BYTE unknown5;
+	BYTE unknown6;
+	DWORD dword_1000E09A;
+	DWORD dword_1000E09E;
+	DWORD dword_1000E0A2;
+	DWORD dword_1000E0A6;
+	DWORD dword_1000E0AA;
+	DWORD dword_1000E0AE;
+	DWORD dword_1000E0B2;
+	DWORD dword_1000E0B6;
+	DWORD dword_1000E0BA;
+	DWORD dword_1000E0BE;
+	DWORD dword_1000E0C2;
+	DWORD dword_1000E0C6;
+	DWORD dword_1000E0CA;
+	DWORD dword_1000E0CE;
+	DWORD dword_1000E0D2;
+#pragma pack(8)
+};
+typedef struct _SGlobalData SGlobalData;
+
+
+static SCADrawResult g_result = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
+static SGlobalData g_data = { 0, };
 
 
 #pragma region CADraw_Init

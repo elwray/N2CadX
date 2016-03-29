@@ -8,7 +8,7 @@
 
 
 #pragma pack(8)
-typedef struct _SCADrawResult
+struct _SCADrawResult
 {
 	RECT screen;
 	DWORD offset;
