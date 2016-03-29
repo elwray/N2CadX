@@ -160,7 +160,7 @@ INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6);
 INT x_sub_10001F20_call(INT a1, INT a2, INT a3);
 INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
 INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight);
-INT DrawVerticalLineToBuffer1(INT x, INT y, INT size, INT color);
+INT DrawVerticalLineToBuffer1(INT x, INT y, INT length, WORD color);
 INT x_sub_100027C0();
 INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT width, INT height);
 INT DrawEmptyRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
