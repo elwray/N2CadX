@@ -1,6 +1,7 @@
 #include <cassert>
 #include "CADraw.h"
 #include "Constants.h"
+#include "Utilites.h"
 
 struct _SGlobalData
 {
@@ -128,7 +129,7 @@ SCADrawResult* CADraw_Init()
 	//g_pFnDrawImage = (int)DrawImageToPrimaryBuffer;
 	//g_pFnSub_10002860 = (int)x_sub_10002860_RectAndFFFBFFFBu;
 	//g_pFnSub_100027C0 = (int)x_sub_100027C0;
-	//g_pFnCopyDataToDirectDrawSurface = (int)CopyDataToDirectDrawSurface;
+	g_result.p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
 	//g_pFnSub_10002B10 = (int)CopyLines;
 	//g_pFnSub_100088E9 = (int)x_sub_100088E9_DrawStruct;
 	//g_pFnSub_10009F13 = (int)x_sub_10009F13_DrawStruct;
@@ -1242,7 +1243,7 @@ INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 		unlocking on the end of function may return not DD_OK value (some error code), but logic of this method is
 		return TRUE when no errors occured.
 */
-BOOL CopyData8ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
+BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
 	WORD* p_source)
 {
 	BOOL isSurfaceLocked = g_result.p_surface == NULL;
@@ -1252,75 +1253,22 @@ BOOL CopyData8ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight,
 			return FALSE;
 	}
 
-	// Fast copy * 8 bytes.
-	//	pDest = (char *) g_result.p_surface + iDestX + iDestX + iDestY * g_lPitch;
-	//	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * a7)];
-	//	_iSrcHeight = iDestHeight;
-	//	iDoublesCopied = 0;
-	//	do
-	//	{
-	//		iDoublesCopied += iDestWidth >> 2;
-	//		do
-	//		{
-	//			*(double *) pDest = *(double *) pSrc;
-	//			pSrc += 8;
-	//			pDest += 8;
-	//			--iDoublesCopied;
-	//		} while (iDoublesCopied);
-	//		pSrc += 2 * a7 + -8 * (iDestWidth >> 2);
-	//		pDest += g_lPitch + -8 * (iDestWidth >> 2);
-	//		--_iSrcHeight;
-	//	} while (_iSrcHeight);
+	WORD* p_dst = (WORD*) g_result.p_surface + destX + destY * g_result.pitch;
+	WORD* p_src = p_source + sourceX + sourceY * sourceWidth;
+
+	do
+	{
+		CopyMemory64(p_dst, p_src, destWidth / 4);
+
+		p_src += sourceWidth;
+		p_dst = (BYTE*) p_dst + g_result.pitch;
+	} while (destHeight--);
 
 	if (isSurfaceLocked)
 		return UnlockSurface();
 
 	return TRUE;
 }
-
-//BOOL __cdecl CopyDataToDirectDrawSurface(int iSrcX, int iSrcY, unsigned int iDestWidth, int iDestHeight, int iDestX, int iDestY, int sourceWidth, char *pSrcArray)
-//{
-//	BOOL bResult; // eax@2
-//	char *pDest; // edi@5
-//	char *pSrc; // esi@5
-//	int _iSrcHeight; // edx@5
-//	int iDoublesCopied; // ecx@5
-//	BOOL bNeedUnlockSurface; // [sp+Ch] [bp-4h]@3
-//
-//	if (g_pSurfaceData)
-//	{
-//		bNeedUnlockSurface = 0;
-//	}
-//	else
-//	{
-//		bResult = LockSurface();
-//		if (!bResult)
-//			return bResult;
-//		bNeedUnlockSurface = 1;
-//	}
-//	pDest = (char *) g_pSurfaceData + iDestX + iDestX + iDestY * g_lPitch;
-//	pSrc = &pSrcArray[2 * (iSrcX + iSrcY * sourceWidth)];
-//	_iSrcHeight = iDestHeight;
-//	iDoublesCopied = 0;
-//	do
-//	{
-//		iDoublesCopied += iDestWidth >> 2;
-//		do
-//		{
-//			*(double *) pDest = *(double *) pSrc;
-//			pSrc += 8;
-//			pDest += 8;
-//			--iDoublesCopied;
-//		} while (iDoublesCopied);
-//		pSrc += 2 * sourceWidth + -8 * (iDestWidth >> 2);
-//		pDest += g_lPitch + -8 * (iDestWidth >> 2);
-//		--_iSrcHeight;
-//	} while (_iSrcHeight);
-//	bResult = bNeedUnlockSurface;
-//	if (bNeedUnlockSurface)
-//		bResult = UnlockSurface();
-//	return bResult;
-//}
 
 /*
 	Description: -
