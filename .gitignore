@@ -9,6 +9,7 @@
 *.suo
 *.user
 *.filters
+*.opendb
 
 # IDA files.
 *.$$$
