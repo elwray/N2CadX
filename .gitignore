@@ -1,7 +1,6 @@
 # VisualStudio folders.
 [Bb]inary/
 [Ii]ntermediate/
-[Ll]ibraries/
 
 # VisualStudio files.
 *.opensdf
@@ -10,6 +9,7 @@
 *.user
 *.filters
 *.opendb
+*.vc.db
 
 # IDA files.
 *.$$$

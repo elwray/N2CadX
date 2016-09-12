@@ -127,12 +127,14 @@ BOOL DeleteBitmap16(SBitmap16* p_bitmap)
 {
 	assert(p_bitmap);
 	if (!p_bitmap)
-		return;
+		return FALSE;
 
 	if (p_bitmap->p_data)
 		free(p_bitmap->p_data);
 
 	free(p_bitmap);
+
+	return TRUE;
 }
 
 BOOL SaveBitmap16Data(INT width, INT height, WORD* p_data, LPCWSTR p_path)
@@ -149,8 +151,8 @@ BOOL SaveBitmap16Data(INT width, INT height, WORD* p_data, LPCWSTR p_path)
 
 	SBitmap16* p_bitmap = CreateBitmap16(width, height);
 	memcpy(p_bitmap->p_data, p_data, sizeof(WORD) * width * height);
-	auto result = SaveBitmap(p_bitmap, p_path);
-	DeleteBitmap(p_bitmap);
+	auto result = SaveBitmap16(p_bitmap, p_path);
+	DeleteBitmap16(p_bitmap);
 
 	return result;
 }
