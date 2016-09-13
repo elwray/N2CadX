@@ -4,10 +4,10 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <ddraw.h>
-#include <stdbool.h>
 
 
-#pragma pack(8)
+#pragma pack(push)
+#pragma pack(1)
 struct _SCADrawResult
 {
 	RECT screen;
@@ -26,22 +26,24 @@ struct _SCADrawResult
 	WORD redOffset;
 	WORD greenOffset;
 	WORD blueOffset;
-	WORD unknown1;
 	DWORD dword_1000E460;
 	DWORD dword_1000E464;
 	DWORD dword_1000E468;
 	WORD word_1000E46C;
 	WORD word_1000E46E;
 	DWORD dword_1000E470;
-	// align
+	DWORD align1;
+
 	DWORD dword_1000E478;
 	DWORD pitch;
 	DWORD dword_1000E480;
 	BYTE a_unknown2[648];
-	BYTE byte_1000E70C;
-	BYTE a_unknown3[8311];
-	WORD word_10010784;
-	BYTE a_unknown4[32766];
+	BYTE a_aaa[42];
+	BYTE a_unknown4[41037];
+	//BYTE byte_1000E70C;
+	//BYTE a_unknown3[8311];
+	//WORD word_10010784;
+	//BYTE a_unknown4[32766];
 	BYTE a_smallBuffer1[512];
 	BYTE a_smallBuffer2[512];
 	BYTE a_smallBuffer3[512];
@@ -95,10 +97,10 @@ struct _SCADrawResult
 	INT (*p_fnDrawEmptyRectToBuffer1)(INT, INT, INT, INT, WORD);
 	INT (*p_fn39)(); // g_pFnDrawHorizontalLine
 	INT (*p_fn40)(); // g_pFnDrawVerticalLine
-	INT (*p_fn41)(); // g_pFnSub_100016D0
+	INT (*p_fn41)(); // g_pFnSub_100016D0 // __int32 __usercall x_sub_100016D0_DrawStruct@<eax>(unsigned int a1@<ebx>, int a2@<ebp>)
 	INT (*p_fn42)(); // g_pFnSub_100024C0
 	INT (*p_fn43)(); // g_pFnSub_10002030
-	INT (*p_fn44)(); // g_pFnSub_10002C70
+	INT (*p_fn44)(); // g_pFnSub_10002C70 // signed int __usercall sub_2AA2C70@<eax>(int a1@<ebp>)
 	INT (*p_fn45)(); // g_pFnCopyFromPrimaryBufferToDirectDrawSurface
 	INT (*p_fn46)(); // g_pFnSub_10003090_2
 	INT (*p_fn47)(); // g_pFnDrawImage
@@ -126,12 +128,39 @@ struct _SCADrawResult
 	WORD a_buffer2[307200];
 	BYTE a_unknown6[1316];
 	WORD a_buffer3[307200];
-	BYTE a_unknown7[1800];
+	BYTE a_unknown7[1280];
 	DWORD dword_101DBDF0;
 	DWORD dword_101DBDF4;
 	DWORD dword_101DBDF8;
 	DWORD dword_101DBDFC;
 };
+#pragma pack(pop)
+
+// int __usercall sub_2AA3090@<eax>(int a1@<ebp>)
+// int __usercall sub_2AA4460@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7)
+// int __usercall sub_2AA4786@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7)
+// int __usercall sub_2AA4AB6@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8)
+// int __usercall sub_2AA4E80@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA51AF@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8)
+// int __usercall sub_2AA5493@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8, int a9)
+// int __usercall sub_2AA586C@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8)
+// int __usercall sub_2AA5B96@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA5F01@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA625D@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8)
+// int __usercall sub_2AA6586@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7)
+// int __usercall sub_2AA687D@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA6C48@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA6FE2@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// int __usercall sub_2AA73B2@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8)
+// int __usercall sub_2AA7678@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, int a7, int a8)
+// int __usercall sub_2AA7938@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8)
+// int __usercall sub_2AA7D0C@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6, __int16 a7, int a8, int a9)
+// __int16 __fastcall x_sub_100087A1(int a1, int a2)
+// int __usercall x_sub_100088E9_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6)
+// int __usercall x_sub_100095A8_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6)
+// int __usercall x_sub_100098D3_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6)
+// int __usercall x_sub_10009F13_DrawStruct@<eax>(int a1@<ebx>, int a2@<ebp>, int a3@<edi>, int a4@<esi>, int a5, int a6)
+
 typedef struct _SCADrawResult SCADrawResult;
 
 

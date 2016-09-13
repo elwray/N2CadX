@@ -62,7 +62,7 @@ struct _SGlobalData
 typedef struct _SGlobalData SGlobalData;
 
 
-static SCADrawResult g_result = { 0, };
+SCADrawResult g_result = { 0, };
 static SGlobalData g_data = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
 
 
@@ -91,6 +91,13 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fnShutdownDirectDrawSurface = (IDirectDrawSurface* (*)()) &ShutdownDirectDrawSurface;
 	g_result.p_fnLockSurface = (BOOL (*)()) &LockSurface;
 	g_result.p_fnUnlockSurface = (INT (*)()) &UnlockSurface;
+	g_result.p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
+	g_result.p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
+	g_result.p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
+	g_result.p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
+	g_result.p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
+	g_result.p_fnShutdownDirectDraw = (IDirectDraw (*)()) &ShutdownDirectDraw;
+
 	g_result.p_fn5 = (INT (*)()) &NotImplemented; // (int)x_sub_10001D00;
 	g_result.p_fn6 = (INT (*)()) &NotImplemented; // (int)x_sub_10001BF0_CopyPixelsArray;
 	g_result.p_fn7 = (INT (*)()) &NotImplemented; // (int)x_sub_10001C80_CopyPixelsArray;
@@ -107,7 +114,6 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fn18 = (INT (*)()) &NotImplemented; // (int)sub_1000586C;
 	g_result.p_fn19 = (INT (*)()) &NotImplemented; // (int)sub_10007678;
 	g_result.p_fn20 = (INT (*)()) &NotImplemented; // (int)CopyRectFromPrimaryBufferToSecondaryBuffer;
-	g_result.p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
 	g_result.p_fn22 = (INT (*)()) &NotImplemented; // (int)x_sub_10001EE0_call;
 	g_result.p_fn23 = (INT (*)()) &NotImplemented; // (int)x_sub_10001F50_call;
 	g_result.p_fn25 = (INT (*)()) &NotImplemented; // g_pFnSub_10003090_1
@@ -122,9 +128,6 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fn33 = (INT (*)()) &NotImplemented; // (int)sub_10007D0C;
 	g_result.p_fn34 = (INT (*)()) &NotImplemented; // (int)sub_10007938;
 	g_result.p_fn35 = (INT (*)()) &NotImplemented; // (int)sub_10005493;
-	g_result.p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
-	g_result.p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
-	g_result.p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
 	g_result.p_fn39 = (INT (*)()) &NotImplemented; // (int)DrawHorizontalLineToPrimaryBuffer;
 	g_result.p_fn40 = (INT (*)()) &NotImplemented; // (int)DrawVerticalLineToPrimaryBuffer;
 	g_result.p_fn41 = (INT (*)()) &NotImplemented; // (int)x_sub_100016D0_DrawStruct;
@@ -135,12 +138,10 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fn46 = (INT (*)()) &NotImplemented; // (int)DrawImageToPrimaryBuffer;
 	g_result.p_fn47 = (INT (*)()) &NotImplemented; // (int)x_sub_10002860_RectAndFFFBFFFBu;
 	g_result.p_fn48 = (INT (*)()) &NotImplemented; // (int)x_sub_100027C0;
-	g_result.p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
 	g_result.p_fn51 = (INT (*)()) &NotImplemented; // (int)CopyLines;
 	g_result.p_fn52 = (INT (*)()) &NotImplemented; // (int)x_sub_100088E9_DrawStruct;
 	g_result.p_fn53 = (INT (*)()) &NotImplemented; // (int)x_sub_10009F13_DrawStruct;
 	g_result.p_fn54 = (INT (*)()) &NotImplemented; // (int)x_sub_100098D3_DrawStruct;
-	g_result.p_fnShutdownDirectDraw = (IDirectDraw (*)()) &ShutdownDirectDraw;
 
 	return &g_result;
 }
@@ -181,7 +182,7 @@ INT Initialize()
 }
 
 /*
-	Description: -
+	Description: - 
 	Address: -
 	Params: -
 	Notes: -
