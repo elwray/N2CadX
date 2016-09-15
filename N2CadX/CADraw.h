@@ -26,24 +26,23 @@ struct _SCADrawResult
 	WORD redOffset;
 	WORD greenOffset;
 	WORD blueOffset;
-	DWORD dword_1000E460;
-	DWORD dword_1000E464;
-	DWORD dword_1000E468;
-	WORD word_1000E46C;
-	WORD word_1000E46E;
-	DWORD dword_1000E470;
-	DWORD align1;
+	WORD align1;
+	DWORD dword_E460;
+	DWORD dword_E464;
+	DWORD dword_E468;
+	WORD word_E46C;
+	WORD word_E46E;
+	DWORD dword_E470;
+	DWORD align2;
 
 	DWORD dword_1000E478;
 	DWORD pitch;
 	DWORD dword_1000E480;
-	BYTE a_unknown2[648];
-	BYTE a_aaa[42];
-	BYTE a_unknown4[41037];
-	//BYTE byte_1000E70C;
-	//BYTE a_unknown3[8311];
-	//WORD word_10010784;
-	//BYTE a_unknown4[32766];
+
+	BYTE a_unsuded[648]; // 648 = 0x288
+	BYTE a_unknown2[8312]; // 2078 = 0x8312
+	WORD a_unknown3[16384]; // 16384 = 0x4000
+
 	BYTE a_smallBuffer1[512];
 	BYTE a_smallBuffer2[512];
 	BYTE a_smallBuffer3[512];
@@ -164,12 +163,12 @@ struct _SCADrawResult
 typedef struct _SCADrawResult SCADrawResult;
 
 
-SCADrawResult* CADraw_Init();
+__declspec(dllexport) SCADrawResult* CADraw_Init();
 
 
 INT NotImplemented(); // Empty method used instead of not implemented methods.
 
-INT Initialize();
+static INT Initialize();
 INT InitializeDirectDraw(HWND handle, BOOL fullscreen);
 IDirectDrawSurface* ShutdownDirectDrawSurface();
 IDirectDraw* ShutdownDirectDraw();
