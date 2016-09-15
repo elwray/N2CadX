@@ -195,12 +195,12 @@ INT InitializeDirectDraw(HWND handle, BOOL fullscreen)
 {
 	ShutdownDirectDraw();
 
-	HRESULT result = DirectDrawCreate(NULL, &g_result->p_ddraw, NULL);
+	HRESULT result = DirectDrawCreateEx(NULL, &g_result->p_ddraw, &IID_IDirectDraw7, NULL);
 	if (FAILED(result))
 		return FALSE;
 
 	DWORD flags = fullscreen ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE : DDSCL_NORMAL;
-	result = IDirectDraw_SetCooperativeLevel(g_result->p_ddraw, handle, flags);
+	result = IDirectDraw7_SetCooperativeLevel(g_result->p_ddraw, handle, flags);
 	if (FAILED(result))
 		return FALSE;
 
@@ -216,11 +216,11 @@ INT InitializeDirectDraw(HWND handle, BOOL fullscreen)
 	Params: -
 	Notes: -
 */
-IDirectDrawSurface* ShutdownDirectDrawSurface()
+IDirectDrawSurface7* ShutdownDirectDrawSurface()
 {
 	if (g_result->p_ddrawSurface)
 	{
-		IDirectDrawSurface_Release(g_result->p_ddrawSurface);
+		IDirectDrawSurface7_Release(g_result->p_ddrawSurface);
 		g_result->p_ddrawSurface = NULL;
 	}
 
@@ -233,13 +233,13 @@ IDirectDrawSurface* ShutdownDirectDrawSurface()
 	Params: -
 	Notes: -
 */
-IDirectDraw* ShutdownDirectDraw()
+IDirectDraw7* ShutdownDirectDraw()
 {
 	ShutdownDirectDrawSurface();
 
 	if (g_result->p_ddraw)
 	{
-		IDirectDraw_Release(g_result->p_ddraw);
+		IDirectDraw7_Release(g_result->p_ddraw);
 		g_result->p_ddraw = NULL;
 	}
 
@@ -252,16 +252,16 @@ IDirectDraw* ShutdownDirectDraw()
 	Params: -
 	Notes: -
 */
-IDirectDraw* ShutdownDirectDrawFullscreen()
+IDirectDraw7* ShutdownDirectDrawFullscreen()
 {
 	ShutdownDirectDrawSurface();
 
 	if (g_result->p_ddraw)
 	{
 		if (g_result->fullscreen)
-			IDirectDraw_RestoreDisplayMode(g_result->p_ddraw);
+			IDirectDraw7_RestoreDisplayMode(g_result->p_ddraw);
 
-		IDirectDraw_Release(g_result->p_ddraw);
+		IDirectDraw7_Release(g_result->p_ddraw);
 		g_result->p_ddraw = NULL;
 	}
 
@@ -282,23 +282,24 @@ INT SetDisplayMode(INT width, INT height)
 
 	if (g_result->fullscreen)
 	{
-		result = IDirectDraw_SetDisplayMode(g_result->p_ddraw, width, height, ScreenBpp);
+		result = IDirectDraw7_SetDisplayMode(g_result->p_ddraw, width, height, ScreenBpp, 0, 0);
 		if (FAILED(result))
 			return FALSE;
 	}
 
 	SetWindowPos(g_result->handle, 0, 0, 0, g_result->width, g_result->height, SWP_NOCOPYBITS | SWP_NOACTIVATE);
 
-	DDSURFACEDESC desc1 = { 0, };
-	desc1.dwSize = sizeof(DDSURFACEDESC);
+	DDSURFACEDESC2 desc1 = { 0, };
+	desc1.dwSize = sizeof(DDSURFACEDESC2);
 	desc1.dwFlags = DDSD_CAPS;
 	desc1.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-	result = IDirectDraw_CreateSurface(g_result->p_ddraw, &desc1, &g_result->p_ddrawSurface, NULL);
+	result = IDirectDraw7_CreateSurface(g_result->p_ddraw, &desc1, &g_result->p_ddrawSurface, NULL);
 	if (FAILED(result))
 		return FALSE;
 
-	DDSURFACEDESC desc2 = { 0, };
-	IDirectDrawSurface_GetSurfaceDesc(g_result->p_ddrawSurface, &desc2);
+	DDSURFACEDESC2 desc2 = { 0, };
+	desc1.dwSize = sizeof(DDSURFACEDESC2);
+	IDirectDrawSurface7_GetSurfaceDesc(g_result->p_ddrawSurface, &desc2);
 
 	SetPixelFormatMasks(desc2.ddpfPixelFormat.dwRBitMask, desc2.ddpfPixelFormat.dwGBitMask,
 		desc2.ddpfPixelFormat.dwBBitMask);
@@ -363,10 +364,10 @@ INT DrawPointToBuffer2(INT x, INT y, WORD color)
 */
 BOOL LockSurface()
 {
-	DDSURFACEDESC desc = { 0, };
-	desc.dwSize = sizeof(DDSURFACEDESC);
+	DDSURFACEDESC2 desc = { 0, };
+	desc.dwSize = sizeof(DDSURFACEDESC2);
 
-	HRESULT result = IDirectDrawSurface_Lock(g_result->p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+	HRESULT result = IDirectDrawSurface7_Lock(g_result->p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
 	if (FAILED(result))
 	{
 		while (true)
@@ -374,10 +375,10 @@ BOOL LockSurface()
 			if (result != DDERR_SURFACEBUSY && result != DDERR_SURFACELOST)
 				return FALSE;
 
-			result = IDirectDrawSurface_Restore(g_result->p_ddrawSurface);
+			result = IDirectDrawSurface7_Restore(g_result->p_ddrawSurface);
 			if (SUCCEEDED(result))
 			{
-				result = IDirectDrawSurface_Lock(g_result->p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+				result = IDirectDrawSurface7_Lock(g_result->p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
 				if (SUCCEEDED(result))
 					break;
 			}
@@ -398,7 +399,7 @@ BOOL LockSurface()
 */
 INT UnlockSurface()
 {
-	HRESULT result = IDirectDrawSurface_Unlock(g_result->p_ddrawSurface, NULL);
+	HRESULT result = IDirectDrawSurface7_Unlock(g_result->p_ddrawSurface, NULL);
 
 	g_result->p_surface = NULL;
 

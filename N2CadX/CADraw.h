@@ -3,6 +3,8 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
+#define DIRECTDRAW_VERSION 0x0700
 #include <ddraw.h>
 
 
@@ -49,15 +51,15 @@ struct _SCADrawResult
 
 	HWND handle;
 	BOOL fullscreen;
-	IDirectDraw* p_ddraw;
-	IDirectDrawSurface* p_ddrawSurface;
+	IDirectDraw7* p_ddraw;
+	IDirectDrawSurface7* p_ddrawSurface;
 
 	INT (*p_fnInitialize)();
 	INT (*p_fnInitializeDirectDraw)(HWND handle, BOOL fullscreen);
-	IDirectDraw* (*p_fnShutdownDirectDrawFullscreen)();
+	IDirectDraw7* (*p_fnShutdownDirectDrawFullscreen)();
 	INT (*p_fnSetDisplayMode)(INT, INT);
 	DWORD (*p_fnSetPixelFormatMasks)(DWORD, DWORD, DWORD);
-	IDirectDrawSurface* (*p_fnShutdownDirectDrawSurface)();
+	IDirectDrawSurface7* (*p_fnShutdownDirectDrawSurface)();
 	BOOL (*p_fnLockSurface)();
 	INT (*p_fnUnlockSurface)();
 	INT (*p_fn5)(); // g_pFnX_sub_10001D00
@@ -170,9 +172,9 @@ INT NotImplemented(); // Empty method used instead of not implemented methods.
 
 static INT Initialize();
 INT InitializeDirectDraw(HWND handle, BOOL fullscreen);
-IDirectDrawSurface* ShutdownDirectDrawSurface();
-IDirectDraw* ShutdownDirectDraw();
-IDirectDraw* ShutdownDirectDrawFullscreen();
+IDirectDrawSurface7* ShutdownDirectDrawSurface();
+IDirectDraw7* ShutdownDirectDraw();
+IDirectDraw7* ShutdownDirectDrawFullscreen();
 INT SetDisplayMode(INT width, INT height);
 INT DrawPointToBuffer1(INT x, INT y, WORD color);
 INT DrawPointToBuffer2(INT x, INT y, WORD color);
