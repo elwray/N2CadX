@@ -112,7 +112,7 @@ struct _SCADrawResult
 	INT (*p_fn52)(); // g_pFnSub_100088E9
 	INT (*p_fn53)(); // g_pFnSub_10009F13
 	INT (*p_fn54)(); // g_pFnSub_100098D3
-	IDirectDraw (*p_fnShutdownDirectDraw)();
+	IDirectDraw7 (*p_fnShutdownDirectDraw)();
 
 	DWORD dword_10018E80;
 	DWORD dword_10018E84;

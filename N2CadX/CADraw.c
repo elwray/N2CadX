@@ -89,10 +89,10 @@ SCADrawResult* CADraw_Init()
 
 	g_result->p_fnInitialize = (INT (*)()) &Initialize;
 	g_result->p_fnInitializeDirectDraw = (INT (*)(HWND, BOOL)) &InitializeDirectDraw;
-	g_result->p_fnShutdownDirectDrawFullscreen = (IDirectDraw* (*)()) &ShutdownDirectDrawFullscreen;
+	g_result->p_fnShutdownDirectDrawFullscreen = (IDirectDraw7* (*)()) &ShutdownDirectDrawFullscreen;
 	g_result->p_fnSetDisplayMode = (INT (*)(INT, INT)) &SetDisplayMode;
 	g_result->p_fnSetPixelFormatMasks = (DWORD (*)(DWORD, DWORD, DWORD)) &SetPixelFormatMasks;
-	g_result->p_fnShutdownDirectDrawSurface = (IDirectDrawSurface* (*)()) &ShutdownDirectDrawSurface;
+	g_result->p_fnShutdownDirectDrawSurface = (IDirectDrawSurface7* (*)()) &ShutdownDirectDrawSurface;
 	g_result->p_fnLockSurface = (BOOL (*)()) &LockSurface;
 	g_result->p_fnUnlockSurface = (INT (*)()) &UnlockSurface;
 	g_result->p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
@@ -100,7 +100,7 @@ SCADrawResult* CADraw_Init()
 	g_result->p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
 	g_result->p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
 	g_result->p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
-	g_result->p_fnShutdownDirectDraw = (IDirectDraw (*)()) &ShutdownDirectDraw;
+	g_result->p_fnShutdownDirectDraw = (IDirectDraw7 (*)()) &ShutdownDirectDraw;
 
 	g_result->p_fn5 = (INT (*)()) &NotImplemented; // (int)x_sub_10001D00;
 	g_result->p_fn6 = (INT (*)()) &NotImplemented; // (int)x_sub_10001BF0_CopyPixelsArray;
@@ -195,7 +195,7 @@ INT InitializeDirectDraw(HWND handle, BOOL fullscreen)
 {
 	ShutdownDirectDraw();
 
-	HRESULT result = DirectDrawCreateEx(NULL, &g_result->p_ddraw, &IID_IDirectDraw7, NULL);
+	HRESULT result = DirectDrawCreateEx(NULL, (LPVOID*) &g_result->p_ddraw, &IID_IDirectDraw7, NULL);
 	if (FAILED(result))
 		return FALSE;
 
@@ -290,15 +290,16 @@ INT SetDisplayMode(INT width, INT height)
 	SetWindowPos(g_result->handle, 0, 0, 0, g_result->width, g_result->height, SWP_NOCOPYBITS | SWP_NOACTIVATE);
 
 	DDSURFACEDESC2 desc1 = { 0, };
-	desc1.dwSize = sizeof(DDSURFACEDESC2);
+	desc1.dwSize = sizeof(desc1);
 	desc1.dwFlags = DDSD_CAPS;
 	desc1.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+
 	result = IDirectDraw7_CreateSurface(g_result->p_ddraw, &desc1, &g_result->p_ddrawSurface, NULL);
 	if (FAILED(result))
 		return FALSE;
 
 	DDSURFACEDESC2 desc2 = { 0, };
-	desc1.dwSize = sizeof(DDSURFACEDESC2);
+	desc2.dwSize = sizeof(desc2);
 	IDirectDrawSurface7_GetSurfaceDesc(g_result->p_ddrawSurface, &desc2);
 
 	SetPixelFormatMasks(desc2.ddpfPixelFormat.dwRBitMask, desc2.ddpfPixelFormat.dwGBitMask,
@@ -1458,7 +1459,7 @@ signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-int __cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
+int x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
 {
 	int result; // eax@1
 	WORD *_pwDest; // esi@2
@@ -1539,7 +1540,7 @@ INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 	Params: -
 	Notes: -
 */
-int __cdecl x_sub_10003400(unsigned __int8 *a1, int a2)
+int x_sub_10003400(unsigned __int8 *a1, int a2)
 {
 	unsigned __int8 *v2; // edx@1
 	int result; // eax@1
@@ -1857,7 +1858,7 @@ __int32 __cdecl DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor
 //     else
 //       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
 // 
-int __cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+int x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
 {
 	char *v5; // edi@1
 	int v6; // edx@1
