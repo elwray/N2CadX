@@ -74,12 +74,7 @@ static SGlobalData g_data = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
 */
 SCADrawResult* CADraw_Init()
 {
-	//g_pFnSub_10003090_1 = (int)sub_10003090;
-	//g_pFnSub_10003090_2 = (int)sub_10003090;
-
 	g_result = calloc(1, sizeof(SCADrawResult));
-
-	auto o = ((BYTE *)&(g_result->p_fnSetDisplayMode)) - (byte *)g_result;
 
 	Initialize();
 
@@ -87,44 +82,50 @@ SCADrawResult* CADraw_Init()
 	g_result->p_buffer2 = g_result->a_buffer2;
 	g_result->p_buffer3 = g_result->a_buffer3;
 
+	// Done.
 	g_result->p_fnInitialize = (INT (*)()) &Initialize;
 	g_result->p_fnInitializeDirectDraw = (INT (*)(HWND, BOOL)) &InitializeDirectDraw;
+	g_result->p_fnShutdownDirectDrawSurface = (IDirectDrawSurface7* (*)()) &ShutdownDirectDrawSurface;
+	g_result->p_fnShutdownDirectDraw = (IDirectDraw7 (*)()) &ShutdownDirectDraw;
 	g_result->p_fnShutdownDirectDrawFullscreen = (IDirectDraw7* (*)()) &ShutdownDirectDrawFullscreen;
 	g_result->p_fnSetDisplayMode = (INT (*)(INT, INT)) &SetDisplayMode;
-	g_result->p_fnSetPixelFormatMasks = (DWORD (*)(DWORD, DWORD, DWORD)) &SetPixelFormatMasks;
-	g_result->p_fnShutdownDirectDrawSurface = (IDirectDrawSurface7* (*)()) &ShutdownDirectDrawSurface;
+	g_result->p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
+	g_result->p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
 	g_result->p_fnLockSurface = (BOOL (*)()) &LockSurface;
 	g_result->p_fnUnlockSurface = (INT (*)()) &UnlockSurface;
-	g_result->p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
-	g_result->p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
+
+	// In progress.
+	g_result->p_fnSetPixelFormatMasks = (DWORD (*)(DWORD, DWORD, DWORD)) &SetPixelFormatMasks;
 	g_result->p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
 	g_result->p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
 	g_result->p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
-	g_result->p_fnShutdownDirectDraw = (IDirectDraw7 (*)()) &ShutdownDirectDraw;
+	g_result->p_fn5 = (INT (*)()) &x_sub_10001D00;
+	g_result->p_fn6 = (INT (*)()) &x_sub_10001BF0_CopyPixelsArray;
+	g_result->p_fn7 = (INT (*)()) &CopyPixelsArray;
+	g_result->p_fn8 = (INT (*)()) &x_sub_10003400;
+	g_result->p_fn9 = (INT (*)()) &x_sub_10003490_call;
+	g_result->p_fn10 = (INT (*)()) &x_sub_10003430_call;
+	g_result->p_fn11 = (INT (*)()) &x_sub_10001EA0_call;
+	g_result->p_fn12 = (INT (*)()) &x_sub_10001F20_call;
+	g_result->p_fn20 = (INT (*)()) &CopyRectBuffer1ToBuffer2;
+	g_result->p_fn22 = (INT (*)()) &x_sub_10001EE0_call;
+	g_result->p_fn23 = (INT (*)()) &x_sub_10001F50_call;
+	g_result->p_fnDrawVerticalLineToBuffer1 = (INT (*)(INT, INT, INT, WORD)) &DrawVerticalLineToBuffer1;
+	g_result->p_fn43 = (INT (*)()) &sub_10002030;
+	g_result->p_fn45 = (INT (*)()) &CopyFromPrimaryBufferToDirectDrawSurface;
+	g_result->p_fn46 = (INT (*)()) &DrawImageToBuffer1;
+	g_result->p_fn47 = (INT (*)()) &x_sub_10002860_RectAndFFFBFFFBu;
+	g_result->p_fn48 = (INT (*)()) &x_sub_100027C0;
+	g_result->p_fn51 = (INT (*)()) &CopyLines;
+	g_result->p_fnDrawHorizontalLineToBuffer1 = (INT (*)(INT, INT, INT, WORD)) &DrawHorizontalLineToBuffer1; // (int);
 
-	g_result->p_fn5 = (INT (*)()) &NotImplemented; // (int)x_sub_10001D00;
-	g_result->p_fn6 = (INT (*)()) &NotImplemented; // (int)x_sub_10001BF0_CopyPixelsArray;
-	g_result->p_fn7 = (INT (*)()) &NotImplemented; // (int)x_sub_10001C80_CopyPixelsArray;
-	g_result->p_fn8 = (INT (*)()) &NotImplemented; // (int)x_sub_10003400;
-	g_result->p_fn9 = (INT (*)()) &NotImplemented; // (int)x_sub_10003490_call;
-	g_result->p_fn10 = (INT (*)()) &NotImplemented; // (int)x_sub_10003430_call;
-	g_result->p_fn11 = (INT (*)()) &NotImplemented; // (int)x_sub_10001EA0_call;
-	g_result->p_fn12 = (INT (*)()) &NotImplemented; // (int)x_sub_10001F20_call;
-	g_result->p_fn13 = (INT (*)()) &NotImplemented; // (int)sub_10004460;
-	g_result->p_fn14 = (INT (*)()) &NotImplemented; // (int)sub_10004786;
-	g_result->p_fn15 = (INT (*)()) &NotImplemented; // (int)sub_10004AB6;
+	// Not implemented.
 	g_result->p_fn16 = (INT (*)()) &NotImplemented; // (int)sub_10005F01;
 	g_result->p_fn17 = (INT (*)()) &NotImplemented; // (int)sub_10005B96;
 	g_result->p_fn18 = (INT (*)()) &NotImplemented; // (int)sub_1000586C;
 	g_result->p_fn19 = (INT (*)()) &NotImplemented; // (int)sub_10007678;
-	g_result->p_fn20 = (INT (*)()) &NotImplemented; // (int)CopyRectFromPrimaryBufferToSecondaryBuffer;
-	g_result->p_fn22 = (INT (*)()) &NotImplemented; // (int)x_sub_10001EE0_call;
-	g_result->p_fn23 = (INT (*)()) &NotImplemented; // (int)x_sub_10001F50_call;
-	g_result->p_fn25 = (INT (*)()) &NotImplemented; // g_pFnSub_10003090_1
-	g_result->p_fn25 = (INT (*)()) &NotImplemented; // (int)sub_100051AF;
 	g_result->p_fn26 = (INT (*)()) &NotImplemented; // (int)sub_10006586;
 	g_result->p_fn27 = (INT (*)()) &NotImplemented; // (int)sub_1000625D;
-	g_result->p_fn28 = (INT (*)()) &NotImplemented; // (int)sub_10004E80;
 	g_result->p_fn29 = (INT (*)()) &NotImplemented; // (int)sub_10006C48;
 	g_result->p_fn30 = (INT (*)()) &NotImplemented; // (int)sub_10006FE2;
 	g_result->p_fn31 = (INT (*)()) &NotImplemented; // (int)sub_1000687D;
@@ -132,20 +133,19 @@ SCADrawResult* CADraw_Init()
 	g_result->p_fn33 = (INT (*)()) &NotImplemented; // (int)sub_10007D0C;
 	g_result->p_fn34 = (INT (*)()) &NotImplemented; // (int)sub_10007938;
 	g_result->p_fn35 = (INT (*)()) &NotImplemented; // (int)sub_10005493;
-	g_result->p_fn39 = (INT (*)()) &NotImplemented; // (int)DrawHorizontalLineToPrimaryBuffer;
-	g_result->p_fn40 = (INT (*)()) &NotImplemented; // (int)DrawVerticalLineToPrimaryBuffer;
 	g_result->p_fn41 = (INT (*)()) &NotImplemented; // (int)x_sub_100016D0_DrawStruct;
 	g_result->p_fn42 = (INT (*)()) &NotImplemented; // (int)x_sub_100024C0;
-	g_result->p_fn43 = (INT (*)()) &NotImplemented; // (int)sub_10002030;
 	g_result->p_fn44 = (INT (*)()) &NotImplemented; // (int)sub_10002C70;
-	g_result->p_fn45 = (INT (*)()) &NotImplemented; // (int)CopyFromPrimaryBufferToDirectDrawSurface;
-	g_result->p_fn46 = (INT (*)()) &NotImplemented; // (int)DrawImageToPrimaryBuffer;
-	g_result->p_fn47 = (INT (*)()) &NotImplemented; // (int)x_sub_10002860_RectAndFFFBFFFBu;
-	g_result->p_fn48 = (INT (*)()) &NotImplemented; // (int)x_sub_100027C0;
-	g_result->p_fn51 = (INT (*)()) &NotImplemented; // (int)CopyLines;
 	g_result->p_fn52 = (INT (*)()) &NotImplemented; // (int)x_sub_100088E9_DrawStruct;
 	g_result->p_fn53 = (INT (*)()) &NotImplemented; // (int)x_sub_10009F13_DrawStruct;
 	g_result->p_fn54 = (INT (*)()) &NotImplemented; // (int)x_sub_100098D3_DrawStruct;
+
+	// Not implemented (usercall calling convention).
+	g_result->p_fn13 = (INT (*)()) &NotImplemented; // (int)sub_10004460;
+	g_result->p_fn14 = (INT (*)()) &NotImplemented; // (int)sub_10004786;
+	g_result->p_fn15 = (INT (*)()) &NotImplemented; // (int)sub_10004AB6;
+	g_result->p_fn25 = (INT (*)()) &NotImplemented; // (int)sub_100051AF;
+	g_result->p_fn28 = (INT (*)()) &NotImplemented; // (int)sub_10004E80;
 
 	return g_result;
 }
@@ -304,12 +304,6 @@ INT SetDisplayMode(INT width, INT height)
 
 	SetPixelFormatMasks(desc2.ddpfPixelFormat.dwRBitMask, desc2.ddpfPixelFormat.dwGBitMask,
 		desc2.ddpfPixelFormat.dwBBitMask);
-
-	Initialize();
-	g_result->screen.right = width - 1;
-	g_result->screen.bottom = height - 1;
-	g_result->screen.left = 0;
-	g_result->screen.top = 0;
 
 	return TRUE;
 }
@@ -720,7 +714,7 @@ INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 	Params: -
 	Notes: -
 */
-INT DrawImageToPrimaryBuffer(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
+INT DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
 	CHAR* pDestAddress)
 {
 	char *pSrc; // esi@1
@@ -1332,7 +1326,7 @@ BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight
 	Params: -
 	Notes: -
 */
-int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
+int CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
 {
 	char *_pSrc; // esi@1
 	char *_pDest; // edi@1
@@ -1368,7 +1362,7 @@ int __cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDest
 	Params: -
 	Notes: -
 */
-signed int __cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
+signed int CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
 {
 	signed int result; // eax@2
 	char *v5; // esi@5
@@ -1564,7 +1558,7 @@ int x_sub_10003400(unsigned __int8 *a1, int a2)
 	Params: -
 	Notes: -
 */
-unsigned __int8 __cdecl x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
+unsigned __int8 x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
 {
 	BYTE *v5; // edi@1
 	int v6; // esi@1
@@ -1790,6 +1784,8 @@ INT DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
 	//	*(WORD*) pDest = wColor;
 	//	pDest += 2;
 	//}
+
+	return 0;
 }
 
 /*
