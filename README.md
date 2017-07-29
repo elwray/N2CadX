@@ -22,6 +22,10 @@ To get started, you will need:
 * Microsoft Visual Studio 2013
 * IDA v.6.6 with Hex Rays module
 
+## Useful tools
+
+* DxWnd (https://sourceforge.net/projects/dxwnd/) - allows to run DirectDraw software in windowed mode.
+
 ## Project structure
 
 Repository consists of the next directories:
@@ -58,6 +62,10 @@ N2CadX - проект, на данный момент, основной цель
 Для работы понадобится:
 * Microsoft Visual Studio 2013
 * IDA v.6.6 с модулем Hex Rays
+
+## Вспомогательные инструменты
+
+* DxWnd (https://sourceforge.net/projects/dxwnd/) - позволяет запускать DirectDraw приложения в оконном режиме.
 
 ## Структура проекта
 
