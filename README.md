@@ -1,7 +1,6 @@
 # N2CadX
 
-![English]
-(https://www.countries-ofthe-world.com/flags/flag-of-United-States-of-America.png)
+![English](https://www.countries-ofthe-world.com/flags/flag-of-United-States-of-America.png)
 
 ## About
 
@@ -40,8 +39,7 @@ If you have any ideas or want to help me with development, please contact me:
 * mail: elwray.ru@gmail.com
 * skype: dimaermakov
 
-![Russian]
-(https://www.countries-ofthe-world.com/flags/flag-of-Russia.png)
+![Russian](https://www.countries-ofthe-world.com/flags/flag-of-Russia.png)
 
 ## О проекте
 
