@@ -12,24 +12,24 @@
 #pragma pack(1)
 struct _SCADrawResult
 {
-	RECT screen;
+	RECT screen;		// 02D5E418
 	DWORD offset;
 	DWORD surfaceHeight;
 	DWORD width;
 	DWORD height;
-	DWORD widthInBytes;
+	DWORD widthInBytes;	// 02D5E438
 	BYTE* p_buffer1;
 	BYTE* p_buffer2;
 	BYTE* p_buffer3;
 	VOID* p_surface;
-	DWORD redMask;
+	DWORD redMask;		// 02D5E44C
 	DWORD greenMask;
 	DWORD blueMask;
 	WORD redOffset;
 	WORD greenOffset;
 	WORD blueOffset;
 	WORD align1;
-	DWORD dword_E460;
+	DWORD dword_E460;	// 02D5E460
 	DWORD dword_E464;
 	DWORD dword_E468;
 	WORD word_E46C;
@@ -37,29 +37,29 @@ struct _SCADrawResult
 	DWORD dword_E470;
 	DWORD align2;
 
-	DWORD dword_1000E478;
+	DWORD dword_1000E478;	// 02D5E478
 	DWORD pitch;
 	DWORD dword_1000E480;
 
-	BYTE a_unsuded[648]; // 648 = 0x288
+	BYTE a_unsuded[648]; // 648 = 0x288 02D5E484
 	BYTE a_unknown2[8312]; // 2078 = 0x8312
 	WORD a_unknown3[16384]; // 16384 = 0x4000
 
-	BYTE a_smallBuffer1[512];
+	BYTE a_smallBuffer1[512];	// 02D68784
 	BYTE a_smallBuffer2[512];
 	BYTE a_smallBuffer3[512];
 
-	HWND handle;
+	HWND handle;				// 02D68D84
 	BOOL fullscreen;
-	IDirectDraw7* p_ddraw;
-	IDirectDrawSurface7* p_ddrawSurface;
+	IDirectDraw* p_ddraw;
+	IDirectDrawSurface* p_ddrawSurface;
 
-	INT (*p_fnInitialize)();
-	INT (*p_fnInitializeDirectDraw)(HWND handle, BOOL fullscreen);
-	IDirectDraw7* (*p_fnShutdownDirectDrawFullscreen)();
+	INT (*p_fnInitialize)();	// 02D68D94
+	BOOL (*p_fnInitializeDirectDraw)(HWND handle, BOOL fullscreen);
+	IDirectDraw* (*p_fnShutdownDirectDrawFullscreen)();
 	INT (*p_fnSetDisplayMode)(INT, INT);
 	DWORD (*p_fnSetPixelFormatMasks)(DWORD, DWORD, DWORD);
-	IDirectDrawSurface7* (*p_fnShutdownDirectDrawSurface)();
+	IDirectDrawSurface* (*p_fnShutdownDirectDrawSurface)();
 	BOOL (*p_fnLockSurface)();
 	INT (*p_fnUnlockSurface)();
 	INT (*p_fn5)(); // g_pFnX_sub_10001D00
@@ -112,9 +112,9 @@ struct _SCADrawResult
 	INT (*p_fn52)(); // g_pFnSub_100088E9
 	INT (*p_fn53)(); // g_pFnSub_10009F13
 	INT (*p_fn54)(); // g_pFnSub_100098D3
-	IDirectDraw7 (*p_fnShutdownDirectDraw)();
+	IDirectDraw (*p_fnShutdownDirectDraw)();
 
-	DWORD dword_10018E80;
+	DWORD dword_10018E80; // 02D68E80
 	DWORD dword_10018E84;
 	DWORD dword_10018E88;
 	DWORD dword_10018E8C;
@@ -124,13 +124,13 @@ struct _SCADrawResult
 	DWORD dword_10018E9C;
 	DWORD dword_10018EA0;
 	DWORD dword_10018EA4;
-	WORD a_buffer1[307200];
-	BYTE a_unknown5[1316];
-	WORD a_buffer2[307200];
-	BYTE a_unknown6[1316];
-	WORD a_buffer3[307200];
-	BYTE a_unknown7[1280];
-	DWORD dword_101DBDF0;
+	WORD a_buffer1[307200];	// 02D68EA8
+	BYTE a_unknown5[1316];	// 2DFEEA8
+	WORD a_buffer2[307200];	// 2DFF3CC
+	BYTE a_unknown6[1316];	// 2E953CC
+	WORD a_buffer3[307200];	// 2E958F0
+	BYTE a_unknown7[1280];	// 2F2B8F0
+	DWORD dword_101DBDF0;   // 2F2BDF0
 	DWORD dword_101DBDF4;
 	DWORD dword_101DBDF8;
 	DWORD dword_101DBDFC;
@@ -146,9 +146,9 @@ __declspec(dllexport) SCADrawResult* CADraw_Init();
 // Done.
 static INT Initialize();
 INT InitializeDirectDraw(HWND handle, BOOL fullscreen);
-IDirectDrawSurface7* ShutdownDirectDrawSurface();
-IDirectDraw7* ShutdownDirectDraw();
-IDirectDraw7* ShutdownDirectDrawFullscreen();
+IDirectDrawSurface* ShutdownDirectDrawSurface();
+IDirectDraw* ShutdownDirectDraw();
+IDirectDraw* ShutdownDirectDrawFullscreen();
 INT SetDisplayMode(INT width, INT height);
 INT DrawPointToBuffer1(INT x, INT y, WORD color);
 INT DrawPointToBuffer2(INT x, INT y, WORD color);

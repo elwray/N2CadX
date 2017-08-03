@@ -18,12 +18,13 @@ Each library has exported function CADraw_Init. Function CADraw_Init initializes
 ## Tools
 
 To get started, you will need:
-* Microsoft Visual Studio 2013
+* Microsoft Visual Studio 2013 / 2015 / 2017
 * IDA v.6.6 with Hex Rays module
 
 ## Useful tools
 
 * DxWnd (https://sourceforge.net/projects/dxwnd/) - allows to run DirectDraw software in windowed mode.
+* ida-images (https://github.com/rr-/ida-images) - memory as image preview pluging for IDA.
 
 ## Project structure
 
@@ -58,12 +59,13 @@ N2CadX - проект, на данный момент, основной цель
 ## Инструменты
 
 Для работы понадобится:
-* Microsoft Visual Studio 2013
+* Microsoft Visual Studio 2013 / 2015 / 2017
 * IDA v.6.6 с модулем Hex Rays
 
 ## Вспомогательные инструменты
 
 * DxWnd (https://sourceforge.net/projects/dxwnd/) - позволяет запускать DirectDraw приложения в оконном режиме.
+* ida-images (https://github.com/rr-/ida-images) - плагин IDA который позволяет просматривать область памяти как рисунок.
 
 ## Структура проекта
 
