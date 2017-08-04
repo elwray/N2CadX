@@ -65,21 +65,21 @@ struct _SCADrawResult
 	INT (*p_fn6)(WORD*, WORD*, INT count); // g_pFnX_sub_10001BF0
 	INT (*p_fn7)(BYTE*, BYTE*, INT count); // g_pFnX_sub_10001C80
 	INT (*p_fn8)(unsigned char*, int); // g_pFnX_sub_10003400
-	INT (*p_fn9)(); // g_pFnX_sub_10003490
-	INT (*p_fn10)(); // g_pFnX_sub_10003430
-	INT (*p_fn11)(); // g_pFnX_sub_10001EA0_call
-	INT (*p_fn12)(); // g_pFnX_sub_10001F20_call
-	INT (*p_fn13)(); // g_pFnSub_10004460
+	unsigned char (*p_fn9)(int, int, unsigned char*, int, int); // g_pFnX_sub_10003490
+	unsigned char (*p_fn10)(int, int, int, int, int); // g_pFnX_sub_10003430
+	INT (*p_fn11)(int, int, int, int, int, int, int); // g_pFnX_sub_10001EA0_call
+	INT (*p_fn12)(int, int, int); // g_pFnX_sub_10001F20_call
+	INT (*p_fn13)(INT, INT, INT); // g_pFnSub_10004460
 	INT (*p_fn14)(); // g_pFnSub_10004786
 	INT (*p_fn15)(); // g_pFnSub_10004AB6
-	INT (*p_fn16)(); // g_pFnSub_10005F01
-	INT (*p_fn17)(); // g_pFnSub_10005B96
-	INT (*p_fn18)(); // g_pFnSub_1000586C
+	INT (*p_fn16)(INT, INT, SHORT, INT, INT); // g_pFnSub_10005F01
+	INT (*p_fn17)(INT, INT, SHORT, INT, INT); // g_pFnSub_10005B96
+	INT (*p_fn18)(INT, INT, INT, INT); // g_pFnSub_1000586C
 	INT (*p_fn19)(); // g_pFnSub_10007678
-	INT (*p_fn20)(); // g_pFnSub_10001F90
+	INT (*p_fnCopyRectBuffer1ToBuffer2)(INT, INT, INT, INT); // g_pFnSub_10001F90
 	INT(*p_fnDrawPointToBuffer2)(INT, INT, WORD);
-	INT (*p_fn22)(); // g_pFnX_sub_10001EE0_call
-	INT (*p_fn23)(); // g_pFnX_sub_10001F50_call
+	INT (*p_fn22)(int, int, int, int, int, int); // g_pFnX_sub_10001EE0_call
+	INT (*p_fn23)(int, int, int, int, int, int, int); // g_pFnX_sub_10001F50_call
 	INT (*p_fn24)(); // g_pFnSub_10003090_1
 	INT (*p_fn25)(); // g_pFnSub_100051AF
 	INT (*p_fn26)(); // g_pFnSub_10006586
@@ -101,16 +101,16 @@ struct _SCADrawResult
 	INT (*p_fn42)(); // g_pFnSub_100024C0
 	INT (*p_fn43)(INT, INT, INT, WORD, INT); // g_pFnSub_10002030
 	INT (*p_fn44)(); // g_pFnSub_10002C70 // signed int __usercall sub_2AA2C70@<eax>(int a1@<ebp>)
-	INT (*p_fn45)(); // g_pFnCopyFromPrimaryBufferToDirectDrawSurface
-	INT (*p_fn46)(); // g_pFnSub_10003090_2
+	INT (*p_fn45)(int, unsigned, unsigned, int); // g_pFnCopyFromPrimaryBufferToDirectDrawSurface
+	INT (*p_fn46)(int, int, int, int, int, int, int, char*); // g_pFnSub_10003090_2
 	INT (*p_fn47)(INT, INT, INT, INT); // g_pFnDrawImage
 	INT (*p_fn48)(); // g_pFnSub_10002860
 	INT (*p_fn49)(); // g_pFnSub_100027C0
 	BOOL (*p_fnCopyData64ToSurface)(INT, INT, INT, INT, INT, INT, INT, WORD*);
 	INT (*p_fn51)(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight); // g_pFnSub_10002B10
-	INT (*p_fn52)(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6); // Sub_100088E9
-	INT (*p_fn53)(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6); // Sub_10009F13
-	INT (*p_fn54)(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6); // Sub_100098D3
+	INT (*p_fn52)(INT a5, INT a6); // Sub_100088E9
+	INT (*p_fn53)(INT a5, INT a6); // Sub_10009F13
+	INT (*p_fn54)(INT a5, INT a6); // Sub_100098D3
 	IDirectDraw7* (*p_fnShutdownDirectDraw)();
 
 	DWORD dword_10018E80; // 02D68E80
@@ -181,12 +181,30 @@ INT x_sub_100027C0();
 INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT width, INT height);
 INT DrawEmptyRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
 INT x_sub_100027C0();
-INT Sub_100088E9(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6);
-INT Sub_100098D3(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6);
-INT Sub_10009F13(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6);
-
-// Not implemented.
-INT NotImplemented();
+INT Sub_100088E9(INT a5, INT a6);
+INT Sub_100098D3(INT a5, INT a6);
+INT Sub_10009F13(INT a5, INT a6);
+INT Sub_10005F01(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_10005B96(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_1000586C(INT a1, INT a2, INT a3, INT a4);
+INT Sub_10004460(INT a1, INT a2, INT a3);
+INT Sub_10004786(INT a1, INT a2, INT a3);
+INT Sub_10004AB6(INT a1, INT a2, SHORT a3, INT a4);
+INT Sub_100051AF(INT a1, INT a2, INT a3, INT a4);
+INT Sub_10007678(INT a1, INT a2, INT a3, INT a4);
+INT Sub_10006586(INT a1, INT a2, INT a3);
+INT Sub_1000625D(INT a1, INT a2, INT a3, INT a4);
+INT Sub_10004E80(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_10006C48(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_10006FE2(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_1000687D(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_100073B2(INT a1, INT a2, INT a3, INT a4);
+INT Sub_10007D0C(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_10007938(INT a1, INT a2, SHORT a3, INT a4);
+INT Sub_10005493(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_100016D0_DrawStruct();
+INT Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5);
+INT Sub_10002C70();
 
 // Not exported.
 INT x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5);

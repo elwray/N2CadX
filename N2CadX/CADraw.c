@@ -9,62 +9,6 @@
 #define LOWORD(x)   (*((WORD*)&(x)))   // low word
 
 
-//struct _SGlobalData
-//{
-//	DWORD dword_1000E030;
-//	DWORD dword_1000E034;
-//	DWORD dword_1000E038;
-//	BYTE atSign;
-//	DWORD dword_1000E03D;
-//	DWORD dword_1000E041;
-//	DWORD dword_1000E045;
-//	BYTE byte_1000E049;
-//	RECT rect;
-//
-//#pragma pack(4)
-//	DWORD dword_1000E054;
-//	BYTE unknown1;
-//	BYTE unknown2;
-//	BYTE unknown3;
-//	BYTE unknown4;
-//	DWORD dword_1000E05C;
-//	DWORD dword_1000E060;
-//	DWORD dword_1000E064;
-//	DWORD dword_1000E068;
-//	DWORD dword_1000E06C; // int (CDECL *dword_1000E06C)(DWORD, DWORD)
-//	SMALL_RECT smallRect;
-//	DWORD dword_1000E078;
-//	DWORD dword_1000E07C;
-//	DWORD dword_1000E080;
-//	DWORD dword_1000E084;
-//	DWORD dword_1000E088;
-//	DWORD dword_1000E08C;
-//	DWORD dword_1000E090;
-//	DWORD dword_1000E094;
-//	BYTE unknown5;
-//	BYTE unknown6;
-//	DWORD dword_1000E09A;
-//	DWORD dword_1000E09E;
-//	DWORD dword_1000E0A2;
-//	DWORD dword_1000E0A6;
-//	DWORD dword_1000E0AA;
-//	DWORD dword_1000E0AE;
-//	DWORD dword_1000E0B2;
-//	DWORD dword_1000E0B6;
-//	DWORD dword_1000E0BA;
-//	DWORD dword_1000E0BE;
-//	DWORD dword_1000E0C2;
-//	DWORD dword_1000E0C6;
-//	DWORD dword_1000E0CA;
-//	DWORD dword_1000E0CE;
-//	DWORD dword_1000E0D2;
-//#pragma pack(8)
-//};
-//typedef struct _SGlobalData SGlobalData;
-
-// static SGlobalData g_data = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
-
-
 SCADrawResult g_result = { 0, };
 
 
@@ -107,7 +51,7 @@ SCADrawResult* CDECL CADraw_Init()
 	g_result.p_fn10 = &x_sub_10003430_call;
 	g_result.p_fn11 = &x_sub_10001EA0_call;
 	g_result.p_fn12 = &x_sub_10001F20_call;
-	g_result.p_fn20 = &CopyRectBuffer1ToBuffer2;
+	g_result.p_fnCopyRectBuffer1ToBuffer2 = &CopyRectBuffer1ToBuffer2;
 	g_result.p_fn22 = &x_sub_10001EE0_call;
 	g_result.p_fn23 = &x_sub_10001F50_call;
 	g_result.p_fnDrawVerticalLineToBuffer1 = &DrawVerticalLineToBuffer1;
@@ -117,35 +61,33 @@ SCADrawResult* CDECL CADraw_Init()
 	g_result.p_fn47 = &x_sub_10002860_RectAndFFFBFFFBu;
 	g_result.p_fn48 = &x_sub_100027C0;
 	g_result.p_fn51 = &CopyLines;
-	g_result.p_fnDrawHorizontalLineToBuffer1 = &DrawHorizontalLineToBuffer1; // (int);
+	g_result.p_fnDrawHorizontalLineToBuffer1 = &DrawHorizontalLineToBuffer1;
 
 	// Not implemented.
-	g_result.p_fn16 = (INT (*)()) &NotImplemented; // (int)sub_10005F01;
-	g_result.p_fn17 = (INT (*)()) &NotImplemented; // (int)sub_10005B96;
-	g_result.p_fn18 = (INT (*)()) &NotImplemented; // (int)sub_1000586C;
-	g_result.p_fn19 = (INT (*)()) &NotImplemented; // (int)sub_10007678;
-	g_result.p_fn26 = (INT (*)()) &NotImplemented; // (int)sub_10006586;
-	g_result.p_fn27 = (INT (*)()) &NotImplemented; // (int)sub_1000625D;
-	g_result.p_fn29 = (INT (*)()) &NotImplemented; // (int)sub_10006C48;
-	g_result.p_fn30 = (INT (*)()) &NotImplemented; // (int)sub_10006FE2;
-	g_result.p_fn31 = (INT (*)()) &NotImplemented; // (int)sub_1000687D;
-	g_result.p_fn32 = (INT (*)()) &NotImplemented; // (int)sub_100073B2;
-	g_result.p_fn33 = (INT (*)()) &NotImplemented; // (int)sub_10007D0C;
-	g_result.p_fn34 = (INT (*)()) &NotImplemented; // (int)sub_10007938;
-	g_result.p_fn35 = (INT (*)()) &NotImplemented; // (int)sub_10005493;
-	g_result.p_fn41 = (INT (*)()) &NotImplemented; // (int)x_sub_100016D0_DrawStruct;
-	g_result.p_fn42 = (INT (*)()) &NotImplemented; // (int)x_sub_100024C0;
-	g_result.p_fn44 = (INT (*)()) &NotImplemented; // (int)sub_10002C70;
-	g_result.p_fn52 = &Sub_100088E9; // 100088E9
-	g_result.p_fn53 = &Sub_10009F13; // 10009F13
-	g_result.p_fn54 = &Sub_100098D3; // 100098D3
-
-	// Not implemented (usercall calling convention).
-	g_result.p_fn13 = (INT (*)()) &NotImplemented; // (int)sub_10004460;
-	g_result.p_fn14 = (INT (*)()) &NotImplemented; // (int)sub_10004786;
-	g_result.p_fn15 = (INT (*)()) &NotImplemented; // (int)sub_10004AB6;
-	g_result.p_fn25 = (INT (*)()) &NotImplemented; // (int)sub_100051AF;
-	g_result.p_fn28 = (INT (*)()) &NotImplemented; // (int)sub_10004E80;
+	g_result.p_fn13 = &Sub_10004460;
+	g_result.p_fn14 = &Sub_10004786;
+	g_result.p_fn15 = &Sub_10004AB6;
+	g_result.p_fn25 = &Sub_100051AF;
+	g_result.p_fn16 = &Sub_10005F01;
+	g_result.p_fn17 = &Sub_10005B96;
+	g_result.p_fn18 = &Sub_1000586C;
+	g_result.p_fn19 = &Sub_10007678;
+	g_result.p_fn26 = &Sub_10006586;
+	g_result.p_fn27 = &Sub_1000625D;
+	g_result.p_fn28 = &Sub_10004E80;
+	g_result.p_fn29 = &Sub_10006C48;
+	g_result.p_fn30 = &Sub_10006FE2;
+	g_result.p_fn31 = &Sub_1000687D;
+	g_result.p_fn32 = &Sub_100073B2;
+	g_result.p_fn33 = &Sub_10007D0C;
+	g_result.p_fn34 = &Sub_10007938;
+	g_result.p_fn35 = &Sub_10005493;
+	g_result.p_fn41 = &Sub_100016D0_DrawStruct;
+	g_result.p_fn42 = &Sub_100024C0;
+	g_result.p_fn44 = &Sub_10002C70;
+	g_result.p_fn52 = &Sub_100088E9;
+	g_result.p_fn53 = &Sub_10009F13;
+	g_result.p_fn54 = &Sub_100098D3;
 
 	return &g_result;
 }
@@ -1761,24 +1703,129 @@ LABEL_39:
 	return result;
 }
 
-INT CDECL Sub_100088E9(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+INT CDECL Sub_100088E9(INT a5, INT a6)
 {
 	return 0;
 }
 
 // Sub_10009F13
-INT CDECL Sub_10009F13(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+INT CDECL Sub_10009F13(INT a5, INT a6)
 {
 	return 0;
 }
 
 // Sub_100098D3 USERCALL
-INT CDECL Sub_100098D3(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+INT CDECL Sub_100098D3(INT a5, INT a6)
 {
 	//__asm
 	//{
 	//	mov eax, 0
 	//}
+	return 0;
+}
+
+INT CDECL Sub_10005F01(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_10005B96(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_1000586C(INT a1, INT a2, INT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10007678(INT a1, INT a2, INT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10006586(INT a1, INT a2, INT a3)
+{
+	return 0;
+}
+
+INT CDECL Sub_1000625D(INT a1, INT a2, INT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10006C48(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_10006FE2(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_1000687D(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_100073B2(INT a1, INT a2, INT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10007D0C(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_10007938(INT a1, INT a2, SHORT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10005493(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_100016D0_DrawStruct()
+{
+	return 0;
+}
+
+INT CDECL Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
+	return 0;
+}
+
+INT CDECL Sub_10002C70()
+{
+	return 0;
+}
+
+INT CDECL Sub_10004460(INT a1, INT a2, INT a3)
+{
+	return 0;
+}
+
+INT CDECL Sub_10004786(INT a1, INT a2, INT a3)
+{
+	return 0;
+}
+
+INT CDECL Sub_10004AB6(INT a1, INT a2, SHORT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_100051AF(INT a1, INT a2, INT a3, INT a4)
+{
+	return 0;
+}
+
+INT CDECL Sub_10004E80(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+{
 	return 0;
 }
 
