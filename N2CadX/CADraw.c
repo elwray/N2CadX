@@ -31,7 +31,7 @@
 //	DWORD dword_1000E060;
 //	DWORD dword_1000E064;
 //	DWORD dword_1000E068;
-//	DWORD dword_1000E06C; // int (__cdecl *dword_1000E06C)(DWORD, DWORD)
+//	DWORD dword_1000E06C; // int (CDECL *dword_1000E06C)(DWORD, DWORD)
 //	SMALL_RECT smallRect;
 //	DWORD dword_1000E078;
 //	DWORD dword_1000E07C;
@@ -62,9 +62,10 @@
 //};
 //typedef struct _SGlobalData SGlobalData;
 
-
-SCADrawResult g_result;
 // static SGlobalData g_data = { 0, 0, 0, '@', 0, 0, 0, 0, 0, 0, 0, 0, 2, 0 };
+
+
+SCADrawResult g_result = { 0, };
 
 
 #pragma region CADraw_Init
@@ -73,7 +74,7 @@ SCADrawResult g_result;
 	Address: -
 	Params: -
 */
-SCADrawResult* CADraw_Init()
+SCADrawResult* CDECL CADraw_Init()
 {
 	Initialize();
 
@@ -82,41 +83,41 @@ SCADrawResult* CADraw_Init()
 	g_result.p_buffer3 = g_result.a_buffer3;
 
 	// Done.
-	g_result.p_fnInitialize = (INT (*)()) &Initialize;
-	g_result.p_fnInitializeDirectDraw = (INT (*)(HWND, BOOL)) &InitializeDirectDraw;
-	g_result.p_fnShutdownDirectDrawSurface = (IDirectDrawSurface* (*)()) &ShutdownDirectDrawSurface;
-	g_result.p_fnShutdownDirectDraw = (IDirectDraw (*)()) &ShutdownDirectDraw;
-	g_result.p_fnShutdownDirectDrawFullscreen = (IDirectDraw* (*)()) &ShutdownDirectDrawFullscreen;
-	g_result.p_fnSetDisplayMode = (INT (*)(INT, INT)) &SetDisplayMode;
-	g_result.p_fnDrawPointToBuffer1 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer1;
-	g_result.p_fnDrawPointToBuffer2 = (INT(*)(INT, INT, WORD)) &DrawPointToBuffer2;
-	g_result.p_fnLockSurface = (BOOL (*)()) &LockSurface;
-	g_result.p_fnUnlockSurface = (INT (*)()) &UnlockSurface;
+	g_result.p_fnInitialize = &Initialize;
+	g_result.p_fnInitializeDirectDraw = &InitializeDirectDraw;
+	g_result.p_fnShutdownDirectDrawSurface = &ShutdownDirectDrawSurface;
+	g_result.p_fnShutdownDirectDraw = &ShutdownDirectDraw;
+	g_result.p_fnShutdownDirectDrawFullscreen = &ShutdownDirectDrawFullscreen;
+	g_result.p_fnSetDisplayMode = &SetDisplayMode;
+	g_result.p_fnDrawPointToBuffer1 = &DrawPointToBuffer1;
+	g_result.p_fnDrawPointToBuffer2 = &DrawPointToBuffer2;
+	g_result.p_fnLockSurface = &LockSurface;
+	g_result.p_fnUnlockSurface = &UnlockSurface;
 
 	// In progress.
-	g_result.p_fnSetPixelFormatMasks = (DWORD (*)(DWORD, DWORD, DWORD)) &SetPixelFormatMasks;
-	g_result.p_fnDrawFilledRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawFilledRectToBuffer1;
-	g_result.p_fnDrawEmptyRectToBuffer1 = (INT(*)(INT, INT, INT, INT, WORD)) &DrawEmptyRectToBuffer1;
-	g_result.p_fnCopyData64ToSurface = (BOOL (*)(INT, INT, INT, INT, INT, INT, INT, WORD*)) &CopyData64ToSurface;
-	g_result.p_fn5 = (INT (*)()) &x_sub_10001D00;
-	g_result.p_fn6 = (INT (*)()) &x_sub_10001BF0_CopyPixelsArray;
-	g_result.p_fn7 = (INT (*)()) &CopyPixelsArray;
-	g_result.p_fn8 = (INT (*)()) &x_sub_10003400;
-	g_result.p_fn9 = (INT (*)()) &x_sub_10003490_call;
-	g_result.p_fn10 = (INT (*)()) &x_sub_10003430_call;
-	g_result.p_fn11 = (INT (*)()) &x_sub_10001EA0_call;
-	g_result.p_fn12 = (INT (*)()) &x_sub_10001F20_call;
-	g_result.p_fn20 = (INT (*)()) &CopyRectBuffer1ToBuffer2;
-	g_result.p_fn22 = (INT (*)()) &x_sub_10001EE0_call;
-	g_result.p_fn23 = (INT (*)()) &x_sub_10001F50_call;
-	g_result.p_fnDrawVerticalLineToBuffer1 = (INT (*)(INT, INT, INT, WORD)) &DrawVerticalLineToBuffer1;
-	g_result.p_fn43 = (INT (*)()) &sub_10002030;
-	g_result.p_fn45 = (INT (*)()) &CopyFromPrimaryBufferToDirectDrawSurface;
-	g_result.p_fn46 = (INT (*)()) &DrawImageToBuffer1;
-	g_result.p_fn47 = (INT (*)()) &x_sub_10002860_RectAndFFFBFFFBu;
-	g_result.p_fn48 = (INT (*)()) &x_sub_100027C0;
-	g_result.p_fn51 = (INT (*)()) &CopyLines;
-	g_result.p_fnDrawHorizontalLineToBuffer1 = (INT (*)(INT, INT, INT, WORD)) &DrawHorizontalLineToBuffer1; // (int);
+	g_result.p_fnSetPixelFormatMasks = &SetPixelFormatMasks;
+	g_result.p_fnDrawFilledRectToBuffer1 = &DrawFilledRectToBuffer1;
+	g_result.p_fnDrawEmptyRectToBuffer1 = &DrawEmptyRectToBuffer1;
+	g_result.p_fnCopyData64ToSurface = &CopyData64ToSurface;
+	g_result.p_fn5 = &x_sub_10001D00;
+	g_result.p_fn6 = &x_sub_10001BF0_CopyPixelsArray;
+	g_result.p_fn7 = &CopyPixelsArray;
+	g_result.p_fn8 = &x_sub_10003400;
+	g_result.p_fn9 = &x_sub_10003490_call;
+	g_result.p_fn10 = &x_sub_10003430_call;
+	g_result.p_fn11 = &x_sub_10001EA0_call;
+	g_result.p_fn12 = &x_sub_10001F20_call;
+	g_result.p_fn20 = &CopyRectBuffer1ToBuffer2;
+	g_result.p_fn22 = &x_sub_10001EE0_call;
+	g_result.p_fn23 = &x_sub_10001F50_call;
+	g_result.p_fnDrawVerticalLineToBuffer1 = &DrawVerticalLineToBuffer1;
+	g_result.p_fn43 = &sub_10002030;
+	g_result.p_fn45 = &CopyFromPrimaryBufferToDirectDrawSurface;
+	g_result.p_fn46 = &DrawImageToBuffer1;
+	g_result.p_fn47 = &x_sub_10002860_RectAndFFFBFFFBu;
+	g_result.p_fn48 = &x_sub_100027C0;
+	g_result.p_fn51 = &CopyLines;
+	g_result.p_fnDrawHorizontalLineToBuffer1 = &DrawHorizontalLineToBuffer1; // (int);
 
 	// Not implemented.
 	g_result.p_fn16 = (INT (*)()) &NotImplemented; // (int)sub_10005F01;
@@ -135,9 +136,9 @@ SCADrawResult* CADraw_Init()
 	g_result.p_fn41 = (INT (*)()) &NotImplemented; // (int)x_sub_100016D0_DrawStruct;
 	g_result.p_fn42 = (INT (*)()) &NotImplemented; // (int)x_sub_100024C0;
 	g_result.p_fn44 = (INT (*)()) &NotImplemented; // (int)sub_10002C70;
-	g_result.p_fn52 = (INT (*)()) &NotImplemented; // (int)x_sub_100088E9_DrawStruct;
-	g_result.p_fn53 = (INT (*)()) &NotImplemented; // (int)x_sub_10009F13_DrawStruct;
-	g_result.p_fn54 = (INT (*)()) &NotImplemented; // (int)x_sub_100098D3_DrawStruct;
+	g_result.p_fn52 = &Sub_100088E9; // 100088E9
+	g_result.p_fn53 = &Sub_10009F13; // 10009F13
+	g_result.p_fn54 = &Sub_100098D3; // 100098D3
 
 	// Not implemented (usercall calling convention).
 	g_result.p_fn13 = (INT (*)()) &NotImplemented; // (int)sub_10004460;
@@ -169,7 +170,7 @@ INT NotImplemented()
 	Params: -
 	Notes: -
 */
-INT Initialize()
+INT CDECL Initialize()
 {
 	g_result.width = ScreenWidth;
 	g_result.height = ScreenHeight;
@@ -190,18 +191,22 @@ INT Initialize()
 	Params: -
 	Notes: -
 */
-BOOL InitializeDirectDraw(HWND handle, BOOL fullscreen)
+BOOL CDECL InitializeDirectDraw(HWND handle, BOOL fullscreen)
 {
 	ShutdownDirectDraw();
 
-	HRESULT result = DirectDrawCreate(NULL, &g_result.p_ddraw, NULL);
+	HRESULT result = DirectDrawCreateEx(NULL, (VOID**) &g_result.p_ddraw, &IID_IDirectDraw7, NULL);
 	if (FAILED(result))
+	{
 		return FALSE;
+	}
 
 	DWORD flags = fullscreen ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE : DDSCL_NORMAL;
-	result = IDirectDraw_SetCooperativeLevel(g_result.p_ddraw, handle, flags);
+	result = IDirectDraw7_SetCooperativeLevel(g_result.p_ddraw, handle, flags);
 	if (FAILED(result))
+	{
 		return FALSE;
+	}
 
 	g_result.fullscreen = fullscreen;
 	g_result.handle = handle;
@@ -215,11 +220,11 @@ BOOL InitializeDirectDraw(HWND handle, BOOL fullscreen)
 	Params: -
 	Notes: -
 */
-IDirectDrawSurface* ShutdownDirectDrawSurface()
+IDirectDrawSurface7* CDECL ShutdownDirectDrawSurface()
 {
 	if (g_result.p_ddrawSurface)
 	{
-		IDirectDrawSurface_Release(g_result.p_ddrawSurface);
+		IDirectDrawSurface7_Release(g_result.p_ddrawSurface);
 		g_result.p_ddrawSurface = NULL;
 	}
 
@@ -232,13 +237,13 @@ IDirectDrawSurface* ShutdownDirectDrawSurface()
 	Params: -
 	Notes: -
 */
-IDirectDraw* ShutdownDirectDraw()
+IDirectDraw7* CDECL ShutdownDirectDraw()
 {
 	ShutdownDirectDrawSurface();
 
 	if (g_result.p_ddraw)
 	{
-		IDirectDraw_Release(g_result.p_ddraw);
+		IDirectDraw7_Release(g_result.p_ddraw);
 		g_result.p_ddraw = NULL;
 	}
 
@@ -251,7 +256,7 @@ IDirectDraw* ShutdownDirectDraw()
 	Params: -
 	Notes: -
 */
-IDirectDraw* ShutdownDirectDrawFullscreen()
+IDirectDraw7* CDECL ShutdownDirectDrawFullscreen()
 {
 	ShutdownDirectDrawSurface();
 
@@ -259,10 +264,10 @@ IDirectDraw* ShutdownDirectDrawFullscreen()
 	{
 		if (g_result.fullscreen)
 		{
-			IDirectDraw_RestoreDisplayMode(g_result.p_ddraw);
+			IDirectDraw7_RestoreDisplayMode(g_result.p_ddraw);
 		}
 
-		IDirectDraw_Release(g_result.p_ddraw);
+		IDirectDraw7_Release(g_result.p_ddraw);
 		g_result.p_ddraw = NULL;
 	}
 
@@ -275,7 +280,7 @@ IDirectDraw* ShutdownDirectDrawFullscreen()
 	Params: -
 	Notes: -
 */
-INT SetDisplayMode(INT width, INT height)
+INT CDECL SetDisplayMode(INT width, INT height)
 {
 	HRESULT result;
 
@@ -283,25 +288,33 @@ INT SetDisplayMode(INT width, INT height)
 
 	if (g_result.fullscreen)
 	{
-		result = IDirectDraw_SetDisplayMode(g_result.p_ddraw, width, height, ScreenBpp, 0, 0);
+		result = IDirectDraw7_SetDisplayMode(g_result.p_ddraw, width, height, ScreenBpp, 0, 0);
 		if (FAILED(result))
+		{
 			return FALSE;
+		}
 	}
 
 	SetWindowPos(g_result.handle, 0, 0, 0, g_result.width, g_result.height, SWP_NOCOPYBITS | SWP_NOACTIVATE);
 
-	DDSURFACEDESC desc1 = { 0, };
+	DDSURFACEDESC2 desc1 = { 0, };
 	desc1.dwSize = sizeof(desc1);
 	desc1.dwFlags = DDSD_CAPS;
 	desc1.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-	result = IDirectDraw_CreateSurface(g_result.p_ddraw, &desc1, &g_result.p_ddrawSurface, NULL);
+	result = IDirectDraw7_CreateSurface(g_result.p_ddraw, &desc1, &g_result.p_ddrawSurface, NULL);
 	if (FAILED(result))
+	{
 		return FALSE;
+	}
 
-	DDSURFACEDESC desc2 = { 0, };
+	DDSURFACEDESC2 desc2 = { 0, };
 	desc2.dwSize = sizeof(desc2);
-	IDirectDrawSurface_GetSurfaceDesc(g_result.p_ddrawSurface, &desc2);
+	result = IDirectDrawSurface7_GetSurfaceDesc(g_result.p_ddrawSurface, &desc2);
+	if (FAILED(result))
+	{
+		return FALSE;
+	}
 
 	SetPixelFormatMasks(desc2.ddpfPixelFormat.dwRBitMask, desc2.ddpfPixelFormat.dwGBitMask,
 		desc2.ddpfPixelFormat.dwBBitMask);
@@ -315,7 +328,7 @@ INT SetDisplayMode(INT width, INT height)
 	Params: -
 	Notes: -
 */
-INT DrawPointToBuffer1(INT x, INT y, WORD color)
+INT CDECL DrawPointToBuffer1(INT x, INT y, WORD color)
 {
 	if (x < g_result.screen.left || x > g_result.screen.right)
 		return 0;
@@ -336,7 +349,7 @@ INT DrawPointToBuffer1(INT x, INT y, WORD color)
 	Params: -
 	Notes: -
 */
-INT DrawPointToBuffer2(INT x, INT y, WORD color)
+INT CDECL DrawPointToBuffer2(INT x, INT y, WORD color)
 {
 	if (x < g_result.screen.left || x > g_result.screen.right)
 		return 0;
@@ -358,12 +371,12 @@ INT DrawPointToBuffer2(INT x, INT y, WORD color)
 	Params: -
 	Notes: -
 */
-BOOL LockSurface()
+BOOL CDECL LockSurface()
 {
-	DDSURFACEDESC desc = { 0, };
-	desc.dwSize = sizeof(DDSURFACEDESC);
+	DDSURFACEDESC2 desc = { 0, };
+	desc.dwSize = sizeof(DDSURFACEDESC2);
 
-	HRESULT result = IDirectDrawSurface_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+	HRESULT result = IDirectDrawSurface7_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
 	if (FAILED(result))
 	{
 		while (true)
@@ -371,10 +384,10 @@ BOOL LockSurface()
 			if (result != DDERR_SURFACEBUSY && result != DDERR_SURFACELOST)
 				return FALSE;
 
-			result = IDirectDrawSurface_Restore(g_result.p_ddrawSurface);
+			result = IDirectDrawSurface7_Restore(g_result.p_ddrawSurface);
 			if (SUCCEEDED(result))
 			{
-				result = IDirectDrawSurface_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
+				result = IDirectDrawSurface7_Lock(g_result.p_ddrawSurface, NULL, &desc, DDLOCK_WAIT, NULL);
 				if (SUCCEEDED(result))
 					break;
 			}
@@ -393,9 +406,9 @@ BOOL LockSurface()
 	Params: -
 	Notes: -
 */
-INT UnlockSurface()
+INT CDECL UnlockSurface()
 {
-	HRESULT result = IDirectDrawSurface_Unlock(g_result.p_ddrawSurface, NULL);
+	HRESULT result = IDirectDrawSurface7_Unlock(g_result.p_ddrawSurface, NULL);
 
 	g_result.p_surface = NULL;
 
@@ -411,7 +424,7 @@ INT UnlockSurface()
 	Params: -
 	Notes: -
 */
-INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
+INT CDECL sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 {
 	int _dWidth; // edi@1
 	int v6; // ecx@1
@@ -715,7 +728,7 @@ INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 	Params: -
 	Notes: -
 */
-INT DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
+INT CDECL DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
 	CHAR* pDestAddress)
 {
 	char *pSrc; // esi@1
@@ -782,7 +795,7 @@ INT DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDe
 	Params: -
 	Notes: -
 */
-INT DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
+INT CDECL DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
 {
 	LONG _x; // edx@1
 	LONG _y; // ecx@3
@@ -877,7 +890,7 @@ INT DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
 		y
 	Notes: -
 */
-INT x_sub_10001D00(INT x, INT y)
+INT CDECL x_sub_10001D00(INT x, INT y)
 {
 	int _y; // ebp@1
 	signed int _uBufferPosition; // ecx@1
@@ -956,7 +969,7 @@ LABEL_12:
 	Params: -
 	Notes: -
 */
-INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
+INT CDECL x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
 	// TODO: return h_________________sub_100034F0(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer2);
 	return 0;
@@ -968,7 +981,7 @@ INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 	Params: -
 	Notes: -
 */
-INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
+INT CDECL x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
 {
 	// TODO: return sub_100038EE(a3, a4, a5, a6, a1, a2, 2 * g_result.width, g_result.a_buffer1);
 	return 0;
@@ -980,7 +993,7 @@ INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
 	Params: -
 	Notes: -
 */
-INT x_sub_10001F20_call(INT a1, INT a2, INT a3)
+INT CDECL x_sub_10001F20_call(INT a1, INT a2, INT a3)
 {
 	// TODO: return sub_100040E6(a1, a2, 2 * g_result.width, a3, (unsigned int) g_result.a_buffer1);
 	return 0;
@@ -992,7 +1005,7 @@ INT x_sub_10001F20_call(INT a1, INT a2, INT a3)
 	Params: -
 	Notes: -
 */
-INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
+INT CDECL x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
 	// TODO: return sub_10003D18(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer1);
 	return 0;
@@ -1008,7 +1021,7 @@ INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 		height - height of source rectangle.
 	Notes: -
 */
-INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
+INT CDECL CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
 {
 	unsigned int v4; // eax@1
 	double *pSrc; // esi@1
@@ -1079,7 +1092,7 @@ INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
 	Params: -
 	Notes: -
 */
-INT DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
+INT CDECL DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
 {
 	int iTempY; // edx@1
 	LONG result; // eax@1
@@ -1133,7 +1146,7 @@ INT DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
 	Params: -
 	Notes: -
 */
-INT x_sub_100027C0()
+INT CDECL x_sub_100027C0()
 {
 	char *pBufferThird; // edi@1
 	LONG iScreenRectHeight; // edx@1
@@ -1203,7 +1216,7 @@ INT x_sub_100027C0()
 	Params: -
 	Notes: -
 */
-INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
+INT CDECL x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
 {
 	char *pBuffer; // edi@1
 	unsigned int result; // eax@1
@@ -1265,7 +1278,7 @@ INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
 	Params: -
 	Notes: -
 */
-INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
+INT CDECL DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 {
 	int v6; // [sp+0h] [bp-18h]@0
 	WORD v7; // [sp+4h] [bp-14h]@0
@@ -1294,7 +1307,7 @@ INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 		unlocking on the end of function may return not DD_OK value (some error code), but logic of this method is
 		return TRUE when no errors occured.
 */
-BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
+BOOL CDECL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
 	WORD* p_source)
 {
 	BOOL isSurfaceLocked = g_result.p_surface == NULL;
@@ -1327,7 +1340,7 @@ BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight
 	Params: -
 	Notes: -
 */
-int CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
+int CDECL CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
 {
 	char *_pSrc; // esi@1
 	char *_pDest; // edi@1
@@ -1363,7 +1376,7 @@ int CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int i
 	Params: -
 	Notes: -
 */
-signed int CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
+signed int CDECL CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
 {
 	signed int result; // eax@2
 	char *v5; // esi@5
@@ -1454,7 +1467,7 @@ signed int CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, uns
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-int x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
+int CDECL x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
 {
 	int result; // eax@1
 	WORD *_pwDest; // esi@2
@@ -1499,7 +1512,7 @@ int x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
+INT CDECL CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 {
 	int iItemsLeft; // ebx@1
 	char *_pSrc; // esi@2
@@ -1535,7 +1548,7 @@ INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 	Params: -
 	Notes: -
 */
-int x_sub_10003400(unsigned __int8 *a1, int a2)
+int CDECL x_sub_10003400(unsigned __int8 *a1, int a2)
 {
 	unsigned __int8 *v2; // edx@1
 	int result; // eax@1
@@ -1559,7 +1572,7 @@ int x_sub_10003400(unsigned __int8 *a1, int a2)
 	Params: -
 	Notes: -
 */
-unsigned __int8 x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
+unsigned __int8 CDECL x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
 {
 	BYTE *v5; // edi@1
 	int v6; // esi@1
@@ -1583,7 +1596,7 @@ unsigned __int8 x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
 	Params: -
 	Notes: -
 */
-unsigned __int8 __cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5)
+unsigned __int8 CDECL x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5)
 {
 	unsigned __int8 *v5; // edi@1
 	int v6; // esi@1
@@ -1618,7 +1631,7 @@ unsigned __int8 __cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3,
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-DWORD SetPixelFormatMasks(DWORD iRBitMask, DWORD iGBitMask, DWORD iBBitMask)
+DWORD CDECL SetPixelFormatMasks(DWORD iRBitMask, DWORD iGBitMask, DWORD iBBitMask)
 {
 	signed int iRBitFromLeftOffset; // edx@1
 	signed int v4; // ebx@1
@@ -1748,12 +1761,33 @@ LABEL_39:
 	return result;
 }
 
+INT CDECL Sub_100088E9(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+{
+	return 0;
+}
+
+// Sub_10009F13
+INT CDECL Sub_10009F13(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+{
+	return 0;
+}
+
+// Sub_100098D3 USERCALL
+INT CDECL Sub_100098D3(VOID* p1, VOID* p2, VOID* p3, VOID* p4, INT a5, INT a6)
+{
+	//__asm
+	//{
+	//	mov eax, 0
+	//}
+	return 0;
+}
+
 /*
 	Description: -
 	Address: -
 	Params: -
 */
-INT DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
+INT CDECL DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
 {
 	if (y < g_result.screen.top || y > g_result.screen.bottom)
 		return 0;
@@ -1790,7 +1824,7 @@ INT DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
 }
 
 /*
-__int32 __cdecl DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor)
+__int32 CDECL DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor)
 {
 	__int32 result; // eax@1
 	int v5; // edx@1
@@ -1855,7 +1889,7 @@ __int32 __cdecl DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor
 //     else
 //       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
 // 
-int x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+int CDECL x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
 {
 	char *v5; // edi@1
 	int v6; // edx@1
@@ -2485,7 +2519,7 @@ LABEL_7:
 }
 
 //----- (100034F0) --------------------------------------------------------
-int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
+int CDECL h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
 {
 	int result; // eax@1
 	BYTE *v10; // esi@5
@@ -2793,7 +2827,7 @@ int __cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a
 }
 
 //----- (100038EE) --------------------------------------------------------
-int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8)
+int CDECL sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8)
 {
 	int v8; // eax@1
 	int result; // eax@1
@@ -3110,7 +3144,7 @@ int __cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned 
 }
 
 //----- (10003D18) --------------------------------------------------------
-int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
+int CDECL sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
 {
 	int result; // eax@1
 	BYTE *v10; // esi@5
@@ -3408,7 +3442,7 @@ int __cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
 }
 
 //----- (100040E6) --------------------------------------------------------
-int __cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
+int CDECL sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 {
 	int v5; // eax@1
 	int result; // eax@1
@@ -3764,9 +3798,9 @@ int sub_10004460(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		g_data.dword_1000E05C = v16 + v17 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v16 + (unsigned __int16)g_data.smallRect.Right + v17 + 1;
 		v18 = v42 + v17 + v16;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10004635;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10004635;
 		if (g_data.dword_1000E064 + v18 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10004641;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10004641;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v19 = v43 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v43 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -4002,9 +4036,9 @@ int sub_10004786(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		g_data.dword_1000E05C = v16 + v17 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v16 + (unsigned __int16)g_data.smallRect.Right + v17 + 1;
 		v18 = v42 + v17 + v16;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000495B;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000495B;
 		if (g_data.dword_1000E064 + v18 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10004967;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10004967;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v19 = v43 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v43 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -4248,9 +4282,9 @@ int sub_10004AB6(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v18 + v19 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v18 + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		v20 = v47 + v19 + v18;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10004CA9;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10004CA9;
 		if (g_data.dword_1000E064 + v20 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10004CB5;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10004CB5;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v21 = v48 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v48 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -4497,9 +4531,9 @@ int sub_10004E80(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v20 + v21 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v20 + (unsigned __int16)g_data.smallRect.Right + v21 + 1;
 		v22 = v40 + v21 + v20;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005069;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005069;
 		if (g_data.dword_1000E064 + v22 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005075;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005075;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v23 = v41 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v41 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -4726,9 +4760,9 @@ int sub_100051AF(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		g_data.dword_1000E05C = v18 + v19 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v18 + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		v20 = v40 + v19 + v18;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000537A;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000537A;
 		if (g_data.dword_1000E064 + v20 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005386;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005386;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v21 = v41 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v41 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -4960,9 +4994,9 @@ int sub_10005493(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
 		v22 = v20 + (unsigned __int16)g_data.smallRect.Right + v21 + 1;
 		g_data.dword_1000E060 = v20 + (unsigned __int16)g_data.smallRect.Right + v21 + 1;
 		v23 = v51 + v21 + v20;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000568F;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000568F;
 		if (g_data.dword_1000E064 + v23 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000569B;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000569B;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v24 = v52 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v52 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -5200,9 +5234,9 @@ int sub_1000586C(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		g_data.dword_1000E05C = v17 + v18 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v17 + (unsigned __int16)g_data.smallRect.Right + v18 + 1;
 		v19 = v43 + v18 + v17;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005A40;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005A40;
 		if (g_data.dword_1000E064 + v19 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005A4C;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005A4C;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v20 = v44 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v44 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -5440,9 +5474,9 @@ int sub_10005B96(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v19 + v20 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v19 + (unsigned __int16)g_data.smallRect.Right + v20 + 1;
 		v21 = v45 + v20 + v19;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005D88;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005D88;
 		if (g_data.dword_1000E064 + v21 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10005D94;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10005D94;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v22 = v46 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v46 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -5682,9 +5716,9 @@ int sub_10005F01(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v20 + v21 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v20 + (unsigned __int16)g_data.smallRect.Right + v21 + 1;
 		v22 = v43 + v21 + v20;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100060EA;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100060EA;
 		if (g_data.dword_1000E064 + v22 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100060F6;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100060F6;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v23 = v44 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v44 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -5909,9 +5943,9 @@ int sub_1000625D(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		g_data.dword_1000E05C = v17 + v18 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v17 + (unsigned __int16)g_data.smallRect.Right + v18 + 1;
 		v19 = v43 + v18 + v17;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006431;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006431;
 		if (g_data.dword_1000E064 + v19 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000643D;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000643D;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v20 = v44 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v44 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -6144,9 +6178,9 @@ int sub_10006586(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 		g_data.dword_1000E05C = v17 + v18 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v17 + (unsigned __int16)g_data.smallRect.Right + v18 + 1;
 		v19 = v39 + v18 + v17;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006758;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006758;
 		if (g_data.dword_1000E064 + v19 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006764;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006764;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v20 = v40 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v40 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -6378,9 +6412,9 @@ int sub_1000687D(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		v23 = v21 + (unsigned __int16)g_data.smallRect.Right + v22 + 1;
 		g_data.dword_1000E060 = v21 + (unsigned __int16)g_data.smallRect.Right + v22 + 1;
 		v24 = v49 + v22 + v21;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006A8E;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006A8E;
 		if (g_data.dword_1000E064 + v24 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006A9A;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006A9A;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v25 = v50 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v50 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -6636,9 +6670,9 @@ int sub_10006C48(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v19 + v20 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v19 + (unsigned __int16)g_data.smallRect.Right + v20 + 1;
 		v21 = v43 + v20 + v19;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006E3A;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006E3A;
 		if (g_data.dword_1000E064 + v21 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10006E46;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10006E46;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v22 = v44 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v44 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -6897,9 +6931,9 @@ int sub_10006FE2(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v19 + v20 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v19 + (unsigned __int16)g_data.smallRect.Right + v20 + 1;
 		v21 = v43 + v20 + v19;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100071F1;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100071F1;
 		if (g_data.dword_1000E064 + v21 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100071FD;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100071FD;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v22 = v44 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v44 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -7145,9 +7179,9 @@ int sub_100073B2(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		g_data.dword_1000E05C = v18 + v19 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v18 + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		v20 = v34 + v19 + v18;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007556;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007556;
 		if (g_data.dword_1000E064 + v20 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007562;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007562;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v21 = v35 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v35 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -7325,9 +7359,9 @@ int sub_10007678(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 		g_data.dword_1000E05C = v18 + v19 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v18 + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		v20 = v34 + v19 + v18;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000781C;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000781C;
 		if (g_data.dword_1000E064 + v20 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007828;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007828;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v21 = v35 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v35 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -7523,9 +7557,9 @@ int sub_10007938(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v20 + v21 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v20 + (unsigned __int16)g_data.smallRect.Right + v21 + 1;
 		v22 = v45 + v21 + v20;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007B4A;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007B4A;
 		if (g_data.dword_1000E064 + v22 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007B56;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007B56;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v23 = v46 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v46 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -7774,9 +7808,9 @@ int sub_10007D0C(int a1, int a2, int a3, int a4, int a5, int a6, __int16 a7, int
 		g_data.dword_1000E05C = v21 + v22 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = v21 + (unsigned __int16)g_data.smallRect.Right + v22 + 1;
 		v23 = v49 + v22 + v21;
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007F1D;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007F1D;
 		if (g_data.dword_1000E064 + v23 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10007F29;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10007F29;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v24 = v50 + g_data.dword_1000E09A - g_result.surfaceHeight;
 		if (v50 + g_data.dword_1000E09A < (unsigned int)g_result.surfaceHeight)
@@ -8132,9 +8166,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			g_data.dword_1000E05C = ((unsigned int)g_data.dword_1000E0B6 >> 1) + v18 + (unsigned __int16)g_data.smallRect.Left;
 			g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v18 + 1;
 			v19 = v125 + v18 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10008B20;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10008B20;
 			if (g_data.dword_1000E064 + v19 < g_data.dword_1000E060)
-				g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10008B28;
+				g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10008B28;
 			g_data.dword_1000E09E = g_data.dword_1000E09A;
 			v20 = v129 + g_data.dword_1000E09A - 480;
 			if ((unsigned int)(v129 + g_data.dword_1000E09A) < 0x1E0)
@@ -8312,9 +8346,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			g_data.dword_1000E05C = ((unsigned int)g_data.dword_1000E0B6 >> 1) + v79 + (unsigned __int16)g_data.smallRect.Left;
 			g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v79 + 1;
 			v80 = v127 + v79 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10009187;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10009187;
 			if (g_data.dword_1000E064 + v80 < g_data.dword_1000E060)
-				g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10009193;
+				g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10009193;
 			g_data.dword_1000E09E = g_data.dword_1000E09A;
 			v81 = v131 + g_data.dword_1000E09A - 480;
 			if ((unsigned int)(v131 + g_data.dword_1000E09A) < 0x1E0)
@@ -8502,9 +8536,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			g_data.dword_1000E05C = ((unsigned int)g_data.dword_1000E0B6 >> 1) + v109 + (unsigned __int16)g_data.smallRect.Left;
 			g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v109 + 1;
 			v110 = v128 + v109 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000948B;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000948B;
 			if (g_data.dword_1000E064 + v110 < g_data.dword_1000E060)
-				g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10009497;
+				g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10009497;
 			g_data.dword_1000E09E = g_data.dword_1000E09A;
 			v111 = v132 + g_data.dword_1000E09A - 480;
 			if ((unsigned int)(v132 + g_data.dword_1000E09A) < 0x1E0)
@@ -8652,9 +8686,9 @@ int x_sub_100088E9_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 			v48 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v47 + 1;
 			g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v47 + 1;
 			v49 = v126 + v47 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10008E28;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10008E28;
 			if (g_data.dword_1000E064 + v49 < g_data.dword_1000E060)
-				g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10008E34;
+				g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10008E34;
 			g_data.dword_1000E09E = g_data.dword_1000E09A;
 			v50 = v130 + g_data.dword_1000E09A - 480;
 			if ((unsigned int)(v130 + g_data.dword_1000E09A) < 0x1E0)
@@ -8900,9 +8934,9 @@ int x_sub_100095A8_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_data.dword_1000E05C = ((unsigned int)g_data.dword_1000E0B6 >> 1) + v18 + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v18 + 1;
 		v19 = v39 + v18 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100097C0;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100097C0;
 		if (g_data.dword_1000E064 + v19 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_100097C8;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_100097C8;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v20 = v40 + g_data.dword_1000E09A - 480;
 		if ((unsigned int)(v40 + g_data.dword_1000E09A) < 0x1E0)
@@ -9123,9 +9157,9 @@ int x_sub_100098D3_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		g_data.dword_1000E05C = g_data.dword_1000E0B6 + v37 * g_data.dword_1000E0BA + (unsigned __int16)g_data.smallRect.Left;
 		g_data.dword_1000E060 = g_data.dword_1000E0B6 + (unsigned __int16)g_data.smallRect.Right + v37 * g_data.dword_1000E0BA + 1;
 		v18 = (WORD*)(v36 + v37 * g_data.dword_1000E0BA + g_data.dword_1000E0B6);
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10009AE6;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10009AE6;
 		if ((unsigned int)v18 + g_data.dword_1000E064 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_10009AEE;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_10009AEE;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v19 = v37 + g_data.dword_1000E09A - 480;
 		if ((unsigned int)(v37 + g_data.dword_1000E09A) < 0x1E0)
@@ -9359,9 +9393,9 @@ int x_sub_10009F13_DrawStruct(int a1, int a2, int a3, int a4, int a5, int a6)
 		v20 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		g_data.dword_1000E060 = ((unsigned int)g_data.dword_1000E0B6 >> 1) + (unsigned __int16)g_data.smallRect.Right + v19 + 1;
 		v21 = v49 + v19 + ((unsigned int)g_data.dword_1000E0B6 >> 1);
-		g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000A15C;
+		g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000A15C;
 		if (g_data.dword_1000E064 + v21 < g_data.dword_1000E060)
-			g_data.dword_1000E06C = (int(__cdecl *)(DWORD, DWORD))loc_1000A168;
+			g_data.dword_1000E06C = (int(CDECL *)(DWORD, DWORD))loc_1000A168;
 		g_data.dword_1000E09E = g_data.dword_1000E09A;
 		v22 = v50 + g_data.dword_1000E09A - 480;
 		if ((unsigned int)(v50 + g_data.dword_1000E09A) < 0x1E0)
@@ -9616,7 +9650,7 @@ __int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
 }
 
 //----- (100024C0) --------------------------------------------------------
-int __cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
+int CDECL x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
 {
 	unsigned __int64 v5; // rax@2
 	int v6; // eax@9

@@ -109,6 +109,7 @@
       <AdditionalDependencies>ddraw.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EnableUAC>false</EnableUAC>
       <ManifestFile />
+      <OutputFile>$(OutDir)n2cad640.dll</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -149,6 +150,7 @@
       <ManifestFile />
       <BaseAddress>
       </BaseAddress>
+      <OutputFile>$(OutDir)n2cad640.dll</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,11 +175,9 @@
     <None Include="N2CadX.def" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bitmap.c" />
     <ClCompile Include="CADraw.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Bitmap.h" />
     <ClInclude Include="CADraw.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Utilites.h" />

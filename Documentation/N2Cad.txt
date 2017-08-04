@@ -1,0 +1,36 @@
+При перемещении текущей области видимости:
+x_sub_10001D00
+
+При перемещении текущей области (не всегда):
+x_sub_100028F0
+
+При рисовании каждого кадра:
+x_sub_100027C0 (Зарисовка черно-зеленый градиентом pBufferThird)
+sub_2D52C70
+sub_2D53090
+x_sub_100034F0
+
+Цепочка вызовов при загрузке:
+SetDisplayMode -> SetPixelFormatMasks
+DrawFilledRectToBuffer1
+x_sub_10001BF0_CopyPixelsArray
+NotImplemented
+x_sub_10001BF0_CopyPixelsArray
+NotImplemented
+CopyFromPrimaryBufferToDirectDrawSurface(48, 224, 560, 40)
+UnlockSurface
+NotImplemented
+...
+CopyPixelsArray
+...
+Sub_100098D3 -> exception at 0766853B
+
+
+
+
+struct v6
+{
+    DWORD* p_data;
+    DWORD  p_unknown1;
+    RECT   rect;
+}
