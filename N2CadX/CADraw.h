@@ -50,15 +50,15 @@ struct _SCADrawResult
 
 	HWND handle;				// 02D68D84
 	BOOL fullscreen;
-	IDirectDraw7* p_ddraw;
-	IDirectDrawSurface7* p_ddrawSurface;
+	IDirectDraw* p_ddraw;
+	IDirectDrawSurface* p_ddrawSurface;
 
 	INT (*p_fnInitialize)();	// 02D68D94
 	BOOL (*p_fnInitializeDirectDraw)(HWND handle, BOOL fullscreen);
-	IDirectDraw7* (*p_fnShutdownDirectDrawFullscreen)();
+	IDirectDraw* (*p_fnShutdownDirectDrawFullscreen)();
 	INT (*p_fnSetDisplayMode)(INT, INT);
 	DWORD (*p_fnSetPixelFormatMasks)(DWORD, DWORD, DWORD);
-	IDirectDrawSurface7* (*p_fnShutdownDirectDrawSurface)();
+	IDirectDrawSurface* (*p_fnShutdownDirectDrawSurface)();
 	BOOL (*p_fnLockSurface)();
 	INT (*p_fnUnlockSurface)();
 	INT (*p_fn5)(INT x, INT y); // g_pFnX_sub_10001D00
@@ -111,7 +111,7 @@ struct _SCADrawResult
 	INT (*p_fn52)(INT a5, INT a6); // Sub_100088E9
 	INT (*p_fn53)(INT a5, INT a6); // Sub_10009F13
 	INT (*p_fn54)(INT a5, INT a6); // Sub_100098D3
-	IDirectDraw7* (*p_fnShutdownDirectDraw)();
+	IDirectDraw* (*p_fnShutdownDirectDraw)();
 
 	DWORD dword_10018E80; // 02D68E80
 	DWORD dword_10018E84;
@@ -145,9 +145,9 @@ __declspec(dllexport) SCADrawResult* CADraw_Init();
 // Done.
 static INT Initialize();
 INT InitializeDirectDraw(HWND handle, BOOL fullscreen);
-IDirectDrawSurface7* ShutdownDirectDrawSurface();
-IDirectDraw7* ShutdownDirectDraw();
-IDirectDraw7* ShutdownDirectDrawFullscreen();
+IDirectDrawSurface* ShutdownDirectDrawSurface();
+IDirectDraw* ShutdownDirectDraw();
+IDirectDraw* ShutdownDirectDrawFullscreen();
 INT SetDisplayMode(INT width, INT height);
 INT DrawPointToBuffer1(INT x, INT y, WORD color);
 INT DrawPointToBuffer2(INT x, INT y, WORD color);
@@ -177,7 +177,6 @@ INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
 INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight);
 INT DrawVerticalLineToBuffer1(INT x, INT y, INT length, WORD color);
 INT DrawHorizontalLineToBuffer1(INT x, INT y, INT length, WORD color);
-INT x_sub_100027C0();
 INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT width, INT height);
 INT DrawEmptyRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
 INT x_sub_100027C0();
@@ -205,6 +204,7 @@ INT Sub_10005493(INT a1, INT a2, SHORT a3, INT a4, INT a5);
 INT Sub_100016D0_DrawStruct();
 INT Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5);
 INT Sub_10002C70();
+INT Sub_2D53090();
 
 // Not exported.
 INT x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5);
