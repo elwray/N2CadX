@@ -18,7 +18,7 @@ SCADrawResult g_result = { 0, };
 	Address: -
 	Params: -
 */
-SCADrawResult* _cdecl CADraw_Init()
+SCADrawResult* CADraw_Init()
 {
 	Initialize();
 
@@ -99,7 +99,7 @@ SCADrawResult* _cdecl CADraw_Init()
 	Params: -
 	Notes: -
 */
-INT _cdecl Initialize()
+INT Initialize()
 {
 	g_result.width = ScreenWidth;
 	g_result.height = ScreenHeight;
@@ -120,7 +120,7 @@ INT _cdecl Initialize()
 	Params: -
 	Notes: -
 */
-BOOL _cdecl InitializeDirectDraw(HWND handle, BOOL fullscreen)
+BOOL InitializeDirectDraw(HWND handle, BOOL fullscreen)
 {
 	ShutdownDirectDraw();
 
@@ -150,7 +150,7 @@ BOOL _cdecl InitializeDirectDraw(HWND handle, BOOL fullscreen)
 	Params: -
 	Notes: -
 */
-IDirectDrawSurface* _cdecl ShutdownDirectDrawSurface()
+IDirectDrawSurface* ShutdownDirectDrawSurface()
 {
 	if (g_result.p_ddrawSurface)
 	{
@@ -167,7 +167,7 @@ IDirectDrawSurface* _cdecl ShutdownDirectDrawSurface()
 	Params: -
 	Notes: -
 */
-IDirectDraw* _cdecl ShutdownDirectDraw()
+IDirectDraw* ShutdownDirectDraw()
 {
 	ShutdownDirectDrawSurface();
 
@@ -186,7 +186,7 @@ IDirectDraw* _cdecl ShutdownDirectDraw()
 	Params: -
 	Notes: -
 */
-IDirectDraw* _cdecl ShutdownDirectDrawFullscreen()
+IDirectDraw* ShutdownDirectDrawFullscreen()
 {
 	ShutdownDirectDrawSurface();
 
@@ -210,7 +210,7 @@ IDirectDraw* _cdecl ShutdownDirectDrawFullscreen()
 	Params: -
 	Notes: -
 */
-INT _cdecl SetDisplayMode(INT width, INT height)
+INT SetDisplayMode(INT width, INT height)
 {
 	HRESULT result;
 
@@ -261,7 +261,7 @@ INT _cdecl SetDisplayMode(INT width, INT height)
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawPointToBuffer1(INT x, INT y, WORD color)
+INT DrawPointToBuffer1(INT x, INT y, WORD color)
 {
 	if (x < g_result.screen.left || x > g_result.screen.right)
 		return 0;
@@ -282,7 +282,7 @@ INT _cdecl DrawPointToBuffer1(INT x, INT y, WORD color)
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawPointToBuffer2(INT x, INT y, WORD color)
+INT DrawPointToBuffer2(INT x, INT y, WORD color)
 {
 	if (x < g_result.screen.left || x > g_result.screen.right)
 		return 0;
@@ -304,7 +304,7 @@ INT _cdecl DrawPointToBuffer2(INT x, INT y, WORD color)
 	Params: -
 	Notes: -
 */
-BOOL _cdecl LockSurface()
+BOOL LockSurface()
 {
 	DDSURFACEDESC2 desc = { 0, };
 	desc.dwSize = sizeof(DDSURFACEDESC2);
@@ -339,13 +339,83 @@ BOOL _cdecl LockSurface()
 	Params: -
 	Notes: -
 */
-INT _cdecl UnlockSurface()
+INT UnlockSurface()
 {
 	HRESULT result = IDirectDrawSurface_Unlock(g_result.p_ddrawSurface, NULL);
 
 	g_result.p_surface = NULL;
 
 	return result;
+}
+
+/*
+Description: fast copy (method cast pointer from UINT64 to UINT64) data from source buffer (p_source) to
+IDirectDraw surface data (g_result.p_surface). If 		IDirectDraw surface isn't locked, method lock it and
+before exit unlock it.
+Address: 0x10002A70
+Params:
+sourceX
+sourceY
+destWidth
+destHeight
+destX
+destY
+sourceWidth
+p_source
+Notes: modified locking and unlocking surface logic and return result. On the original version during surface
+unlocking on the end of function may return not DD_OK value (some error code), but logic of this method is
+return TRUE when no errors occured.
+*/
+BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
+	WORD* p_source)
+{
+	assert(sourceX >= 0);
+	assert(sourceY >= 0);
+	assert(destWidth >= 0);
+	assert(destHeight >= 0);
+	assert(destX >= 0);
+	assert(destY >= 0);
+	assert(sourceWidth >= 0);
+	assert(p_source);
+
+	auto isSurfaceLocked = g_result.p_surface != NULL;
+	if (!isSurfaceLocked)
+	{
+		auto result = LockSurface();
+		if (!result)
+		{
+			return FALSE;
+		}
+	}
+
+	auto p_src = (BYTE*)p_source + ((sourceX + sourceY * sourceWidth) * 2);
+	auto p_dest = (BYTE*)g_result.p_surface + (2 * destX + destY * g_result.pitch);
+	auto width2 = destWidth / 2;
+
+	for (auto y = 0; y < destHeight; ++y)
+	{
+		for (auto x = 0; x < width2; ++x)
+		{
+			*(double *)p_dest = *(double *)p_src;
+
+			p_src += 8;
+			p_dest += 8;
+		}
+
+		p_src += 2 * sourceWidth + -8 * width2;
+		p_dest += g_result.pitch + -8 * width2;
+	}
+
+	if (!isSurfaceLocked)
+	{
+		auto result = UnlockSurface();
+		if (!result)
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 #pragma endregion
 
@@ -357,7 +427,7 @@ INT _cdecl UnlockSurface()
 	Params: -
 	Notes: -
 */
-INT _cdecl sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
+INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 {
 	int _dWidth; // edi@1
 	int v6; // ecx@1
@@ -661,7 +731,7 @@ INT _cdecl sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5)
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
+INT DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, INT iDestY, INT iDestWidth,
 	CHAR* pDestAddress)
 {
 	char *pSrc; // esi@1
@@ -728,7 +798,7 @@ INT _cdecl DrawImageToBuffer1(INT iSrcX, INT iSrcY, INT a3, INT a4, INT iDestX, 
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
+INT DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD iColor)
 {
 	LONG _x; // edx@1
 	LONG _y; // ecx@3
@@ -823,7 +893,7 @@ INT _cdecl DrawFilledRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD i
 		y
 	Notes: -
 */
-INT _cdecl x_sub_10001D00(INT x, INT y)
+INT x_sub_10001D00(INT x, INT y)
 {
 	int _y; // ebp@1
 	signed int _uBufferPosition; // ecx@1
@@ -902,7 +972,7 @@ LABEL_12:
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
+INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
 	// TODO: return h_________________sub_100034F0(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer2);
 	return 0;
@@ -914,7 +984,7 @@ INT _cdecl x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, I
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
+INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
 {
 	// TODO: return sub_100038EE(a3, a4, a5, a6, a1, a2, 2 * g_result.width, g_result.a_buffer1);
 	return 0;
@@ -926,7 +996,7 @@ INT _cdecl x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6)
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_10001F20_call(INT a1, INT a2, INT a3)
+INT x_sub_10001F20_call(INT a1, INT a2, INT a3)
 {
 	// TODO: return sub_100040E6(a1, a2, 2 * g_result.width, a3, (unsigned int) g_result.a_buffer1);
 	return 0;
@@ -938,7 +1008,7 @@ INT _cdecl x_sub_10001F20_call(INT a1, INT a2, INT a3)
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
+INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7)
 {
 	// TODO: return sub_10003D18(a3, a4, a5, a6, a1, a2, 2 * g_result.width, a7, g_result.a_buffer1);
 	return 0;
@@ -954,7 +1024,7 @@ INT _cdecl x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, I
 		height - height of source rectangle.
 	Notes: -
 */
-INT _cdecl CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
+INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
 {
 	unsigned int v4; // eax@1
 	double *pSrc; // esi@1
@@ -1025,7 +1095,7 @@ INT _cdecl CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight)
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
+INT DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
 {
 	int iTempY; // edx@1
 	LONG result; // eax@1
@@ -1079,7 +1149,7 @@ INT _cdecl DrawVerticalLineToBuffer1(INT x, INT y, INT iSize, WORD a4)
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_100027C0()
+INT x_sub_100027C0()
 {
 	char *pBufferThird; // edi@1
 	LONG iScreenRectHeight; // edx@1
@@ -1149,7 +1219,7 @@ INT _cdecl x_sub_100027C0()
 	Params: -
 	Notes: -
 */
-INT _cdecl x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
+INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight)
 {
 	char *pBuffer; // edi@1
 	unsigned int result; // eax@1
@@ -1211,7 +1281,7 @@ INT _cdecl x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT iWidth, INT iHeight
 	Params: -
 	Notes: -
 */
-INT _cdecl DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
+INT DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD color)
 {
 	int v6; // [sp+0h] [bp-18h]@0
 	WORD v7; // [sp+4h] [bp-14h]@0
@@ -1223,57 +1293,12 @@ INT _cdecl DrawEmptyRectToBuffer1(INT x, INT y, INT iWidth, INT iHeight, WORD co
 }
 
 /*
-	Description: fast copy (method cast pointer from UINT64 to UINT64) data from source buffer (p_source) to
-		IDirectDraw surface data (g_result.p_surface). If 		IDirectDraw surface isn't locked, method lock it and
-		before exit unlock it.
-	Address: 0x10002A70
-	Params:
-		sourceX
-		sourceY
-		destWidth
-		destHeight
-		destX
-		destY
-		sourceWidth
-		p_source
-	Notes: modified locking and unlocking surface logic and return result. On the original version during surface
-		unlocking on the end of function may return not DD_OK value (some error code), but logic of this method is
-		return TRUE when no errors occured.
-*/
-BOOL _cdecl CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight, INT destX, INT destY, INT sourceWidth,
-	WORD* p_source)
-{
-	BOOL isSurfaceLocked = g_result.p_surface == NULL;
-	if (isSurfaceLocked)
-	{
-		if (!LockSurface())
-			return FALSE;
-	}
-
-	//WORD* p_dst = (WORD*) g_result.p_surface + destX + destY * g_result.pitch;
-	//WORD* p_src = p_source + sourceX + sourceY * sourceWidth;
-
-	//do
-	//{
-	//	CopyMemory64(p_dst, p_src, destWidth / 4);
-
-	//	p_src += sourceWidth;
-	//	p_dst = (BYTE*) p_dst + g_result.pitch;
-	//} while (destHeight--);
-
-	if (isSurfaceLocked)
-		return UnlockSurface();
-
-	return TRUE;
-}
-
-/*
 	Description: -
 	Address: 10002B10
 	Params: -
 	Notes: -
 */
-int _cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
+int CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX, int iDestY, int iDestWidth, char *pDest, int a9, int iHeight)
 {
 	char *_pSrc; // esi@1
 	char *_pDest; // edi@1
@@ -1309,7 +1334,7 @@ int _cdecl CopyLines(int iSrcX, int iSrcY, int iSrcWidth, char *pSrc, int iDestX
 	Params: -
 	Notes: -
 */
-signed int _cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
+signed int CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, unsigned int a3, int a4)
 {
 	signed int result; // eax@2
 	char *v5; // esi@5
@@ -1400,7 +1425,7 @@ signed int _cdecl CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int 
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-int _cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
+int x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
 {
 	int result; // eax@1
 	WORD *_pwDest; // esi@2
@@ -1445,7 +1470,7 @@ int _cdecl x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount)
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-INT _cdecl CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
+INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 {
 	int iItemsLeft; // ebx@1
 	char *_pSrc; // esi@2
@@ -1481,7 +1506,7 @@ INT _cdecl CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount)
 	Params: -
 	Notes: -
 */
-int _cdecl x_sub_10003400(unsigned __int8 *a1, int a2)
+int x_sub_10003400(unsigned __int8 *a1, int a2)
 {
 	unsigned __int8 *v2; // edx@1
 	int result; // eax@1
@@ -1505,7 +1530,7 @@ int _cdecl x_sub_10003400(unsigned __int8 *a1, int a2)
 	Params: -
 	Notes: -
 */
-unsigned __int8 _cdecl x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
+unsigned __int8 x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5)
 {
 	BYTE *v5; // edi@1
 	int v6; // esi@1
@@ -1529,7 +1554,7 @@ unsigned __int8 _cdecl x_sub_10003430_call(int a1, int a2, int a3, int a4, int a
 	Params: -
 	Notes: -
 */
-unsigned __int8 _cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5)
+unsigned __int8 x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5)
 {
 	unsigned __int8 *v5; // edi@1
 	int v6; // esi@1
@@ -1564,7 +1589,7 @@ unsigned __int8 _cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, 
 // BYTE red_value = (pixel & red_mask) >> 11;
 // BYTE green_value = (pixel & green_mask) >> 5;
 // BYTE blue_value = (pixel & blue_mask);
-DWORD _cdecl SetPixelFormatMasks(DWORD iRBitMask, DWORD iGBitMask, DWORD iBBitMask)
+DWORD SetPixelFormatMasks(DWORD iRBitMask, DWORD iGBitMask, DWORD iBBitMask)
 {
 	signed int iRBitFromLeftOffset; // edx@1
 	signed int v4; // ebx@1
@@ -1694,19 +1719,19 @@ LABEL_39:
 	return result;
 }
 
-INT _cdecl Sub_100088E9(INT a5, INT a6)
+INT Sub_100088E9(INT a5, INT a6)
 {
 	return 0;
 }
 
 // Sub_10009F13
-INT _cdecl Sub_10009F13(INT a5, INT a6)
+INT Sub_10009F13(INT a5, INT a6)
 {
 	return 0;
 }
 
 // Sub_100098D3 USERCALL
-INT _cdecl Sub_100098D3(INT a5, INT a6)
+INT Sub_100098D3(INT a5, INT a6)
 {
 	//__asm
 	//{
@@ -1715,112 +1740,112 @@ INT _cdecl Sub_100098D3(INT a5, INT a6)
 	return 0;
 }
 
-INT _cdecl Sub_10005F01(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10005F01(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10005B96(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10005B96(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_1000586C(INT a1, INT a2, INT a3, INT a4)
+INT Sub_1000586C(INT a1, INT a2, INT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10007678(INT a1, INT a2, INT a3, INT a4)
+INT Sub_10007678(INT a1, INT a2, INT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10006586(INT a1, INT a2, INT a3)
+INT Sub_10006586(INT a1, INT a2, INT a3)
 {
 	return 0;
 }
 
-INT _cdecl Sub_1000625D(INT a1, INT a2, INT a3, INT a4)
+INT Sub_1000625D(INT a1, INT a2, INT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10006C48(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10006C48(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10006FE2(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10006FE2(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_1000687D(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_1000687D(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_100073B2(INT a1, INT a2, INT a3, INT a4)
+INT Sub_100073B2(INT a1, INT a2, INT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10007D0C(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10007D0C(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10007938(INT a1, INT a2, SHORT a3, INT a4)
+INT Sub_10007938(INT a1, INT a2, SHORT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10005493(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10005493(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_100016D0_DrawStruct()
+INT Sub_100016D0_DrawStruct()
 {
 	return 0;
 }
 
-INT _cdecl Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10002C70()
+INT Sub_10002C70()
 {
 	return 0;
 }
 
-INT _cdecl Sub_10004460(INT a1, INT a2, INT a3)
+INT Sub_10004460(INT a1, INT a2, INT a3)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10004786(INT a1, INT a2, INT a3)
+INT Sub_10004786(INT a1, INT a2, INT a3)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10004AB6(INT a1, INT a2, SHORT a3, INT a4)
+INT Sub_10004AB6(INT a1, INT a2, SHORT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_100051AF(INT a1, INT a2, INT a3, INT a4)
+INT Sub_100051AF(INT a1, INT a2, INT a3, INT a4)
 {
 	return 0;
 }
 
-INT _cdecl Sub_10004E80(INT a1, INT a2, SHORT a3, INT a4, INT a5)
+INT Sub_10004E80(INT a1, INT a2, SHORT a3, INT a4, INT a5)
 {
 	return 0;
 }
 
-INT _cdecl Sub_2D53090()
+INT Sub_2D53090()
 {
 	return 0;
 }
@@ -1830,7 +1855,7 @@ INT _cdecl Sub_2D53090()
 	Address: -
 	Params: -
 */
-INT _cdecl DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
+INT DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
 {
 	if (y < g_result.screen.top || y > g_result.screen.bottom)
 		return 0;
@@ -1867,7 +1892,7 @@ INT _cdecl DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
 }
 
 /*
-__int32 _cdecl DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor)
+__int32 DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor)
 {
 	__int32 result; // eax@1
 	int v5; // edx@1
@@ -1932,7 +1957,7 @@ __int32 _cdecl DrawHorizontalLineToBuffer1(int x, int y, int iSize, WORD wColor)
 //     else
 //       result = sub_100028F0(0, 0, 640 - x, 480 - _y, -_y);
 // 
-int _cdecl x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
+int x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5)
 {
 	char *v5; // edi@1
 	int v6; // edx@1
@@ -2562,7 +2587,7 @@ LABEL_7:
 }
 
 //----- (100034F0) --------------------------------------------------------
-int _cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
+int h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
 {
 	int result; // eax@1
 	BYTE *v10; // esi@5
@@ -2870,7 +2895,7 @@ int _cdecl h_________________sub_100034F0(int a1, int a2, int a3, int a4, int a5
 }
 
 //----- (100038EE) --------------------------------------------------------
-int _cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8)
+int sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned int a7, unsigned int a8)
 {
 	int v8; // eax@1
 	int result; // eax@1
@@ -3187,7 +3212,7 @@ int _cdecl sub_100038EE(int a1, int a2, int a3, int a4, int x, int y, unsigned i
 }
 
 //----- (10003D18) --------------------------------------------------------
-int _cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
+int sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, unsigned int a9)
 {
 	int result; // eax@1
 	BYTE *v10; // esi@5
@@ -3485,7 +3510,7 @@ int _cdecl sub_10003D18(int a1, int a2, int a3, int a4, int a5, int a6, int a7, 
 }
 
 //----- (100040E6) --------------------------------------------------------
-int _cdecl sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
+int sub_100040E6(int a1, int a2, int a3, int a4, unsigned int a5)
 {
 	int v5; // eax@1
 	int result; // eax@1
@@ -9693,7 +9718,7 @@ __int32 x_sub_100016D0_DrawStruct(unsigned int a1, int a2)
 }
 
 //----- (100024C0) --------------------------------------------------------
-int _cdecl x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
+int x_sub_100024C0(int a1, int a2, int a3, int a4, int a5)
 {
 	unsigned __int64 v5; // rax@2
 	int v6; // eax@9
