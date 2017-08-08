@@ -60,7 +60,7 @@ struct _SCADrawResult
 	DWORD (*p_fnSetPixelFormatMasks)(DWORD, DWORD, DWORD);
 	IDirectDrawSurface* (*p_fnShutdownDirectDrawSurface)();
 	BOOL (*p_fnLockSurface)();
-	INT (*p_fnUnlockSurface)();
+	BOOL (*p_fnUnlockSurface)();
 	INT (*p_fn5)(INT x, INT y); // g_pFnX_sub_10001D00
 	INT (*p_fn6)(WORD*, WORD*, INT count); // g_pFnX_sub_10001BF0
 	INT (*p_fn7)(BYTE*, BYTE*, INT count); // g_pFnX_sub_10001C80
@@ -138,7 +138,6 @@ struct _SCADrawResult
 
 typedef struct _SCADrawResult SCADrawResult;
 
-
 __declspec(dllexport) SCADrawResult* CADraw_Init();
 
 
@@ -163,23 +162,25 @@ signed int CopyFromPrimaryBufferToDirectDrawSurface(int a1, unsigned int a2, uns
 int x_sub_10001BF0_CopyPixelsArray(WORD *pwSrc, WORD *pwDest, int iCount);
 INT CopyPixelsArray(BYTE* pSrc, BYTE* pDest, INT iCount);
 int x_sub_10003400(unsigned __int8 *a1, int a2);
-unsigned __int8 __cdecl x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5);
+unsigned __int8 x_sub_10003490_call(int a1, int a2, unsigned __int8 *a3, int a4, int a5);
 unsigned __int8 x_sub_10003430_call(int a1, int a2, int a3, int a4, int a5);
 INT DrawImageToBuffer1(INT sourceX, INT sourceY, INT a3, INT a4, INT destX, INT destY, INT destWidth,
 	CHAR* p_dest);
 INT DrawFilledRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
 INT sub_10002030(INT x, INT y, INT iWidth, WORD color, INT a5);
 INT x_sub_10001D00(INT x, INT y);
-INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
-INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6);
-INT x_sub_10001F20_call(INT a1, INT a2, INT a3);
-INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
 INT CopyRectBuffer1ToBuffer2(INT x, INT y, INT iWidth, INT iHeight);
 INT DrawVerticalLineToBuffer1(INT x, INT y, INT length, WORD color);
 INT DrawHorizontalLineToBuffer1(INT x, INT y, INT length, WORD color);
 INT x_sub_10002860_RectAndFFFBFFFBu(INT x, INT y, INT width, INT height);
 INT DrawEmptyRectToBuffer1(INT x, INT y, INT width, INT height, WORD color);
 INT x_sub_100027C0();
+
+// TODO.
+INT x_sub_10001EA0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
+INT x_sub_10001EE0_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6);
+INT x_sub_10001F20_call(INT a1, INT a2, INT a3);
+INT x_sub_10001F50_call(INT a1, INT a2, INT a3, INT a4, INT a5, INT a6, INT a7);
 INT Sub_100088E9(INT a5, INT a6);
 INT Sub_100098D3(INT a5, INT a6);
 INT Sub_10009F13(INT a5, INT a6);
@@ -205,8 +206,5 @@ INT Sub_100016D0_DrawStruct();
 INT Sub_100024C0(INT a1, INT a2, SHORT a3, INT a4, INT a5);
 INT Sub_10002C70();
 INT Sub_2D53090();
-
-// Not exported.
-INT x_sub_100028F0(int x, unsigned int y, unsigned int iWidth, int iHeight, int a5);
 
 #endif // CADRAW_H
