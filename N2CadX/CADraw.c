@@ -382,15 +382,15 @@ BOOL CopyData64ToSurface(INT sourceX, INT sourceY, INT destWidth, INT destHeight
 		}
 	}
 
-	auto p_src = (BYTE*)p_source + ((sourceX + sourceY * sourceWidth) * 2);
-	auto p_dest = (BYTE*)g_result.p_surface + (2 * destX + destY * g_result.pitch);
+	auto p_src = (BYTE*) p_source + ((sourceX + sourceY * sourceWidth) * 2);
+	auto p_dest = (BYTE*) g_result.p_surface + (2 * destX + destY * g_result.pitch);
 	auto width2 = destWidth / 2;
 
 	for (auto y = 0; y < destHeight; ++y)
 	{
 		for (auto x = 0; x < width2; ++x)
 		{
-			*(double*)p_dest = *(double*)p_src;
+			*(double*) p_dest = *(double*) p_src;
 
 			p_src += 8;
 			p_dest += 8;
@@ -1666,40 +1666,54 @@ LABEL_39:
 /*
 	Description: -
 	Address: -
-	Params: -
+	Params:
+		x
+		y
+		length
+		color: 16-bit color in BGR565 format.
 */
-INT DrawHorizontalLineToBuffer1(INT x, INT y, INT width, WORD color)
+INT DrawHorizontalLineToBuffer1(INT x, INT y, INT length, UINT16 color)
 {
 	if (y < g_result.screen.top || y > g_result.screen.bottom)
+	{
 		return 0;
-
-	auto endX = x + width - 1;
+	}
 
 	if (x < g_result.screen.left)
+	{
 		x = g_result.screen.left;
+	}
+
+	auto endX = length + x - 1;
 	if (endX > g_result.screen.right)
+	{
 		endX = g_result.screen.right;
+	}
+
 	if (x > endX)
+	{
 		return 0;
+	}
 
 
-	//pBuffer1 = &g_result.a_buffer1[640 * y + result + (g_result.offset >> 1)];
-	//if (y >= g_result.surfaceHeight)
-	//	pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
-	//LOWORD(v5) = wColor;
-	//iCount = iLength - result + 1;
-	//iValueToSet = v5 << 16;
-	//LOWORD(iValueToSet) = wColor;
-	//result = iValueToSet;
-	//iInvertedCount = iCount & 1;
-	//iCount >>= 1;
-	//memset32(pBuffer1, iValueToSet, iCount);
-	//pDest = (char *) &pBuffer1[2 * iCount];
-	//for (i = iInvertedCount; i; --i)
-	//{
-	//	*(WORD*) pDest = wColor;
-	//	pDest += 2;
-	//}
+
+	//		pBuffer1 = &g_aBufferPrimary16[640 * y + result + (g_uBufferOrigin16 >> 1)];
+	//		if (y >= g_dwSurfaceHeight)
+	//			pBuffer1 -= 307200;                     // 640 * 480 * sizeof(WORD)
+	//		LOWORD(v5) = wColor;
+	//		iCount = iLength - result + 1;
+	//		iValueToSet = v5 << 16;
+	//		LOWORD(iValueToSet) = wColor;
+	//		result = iValueToSet;
+	//		iInvertedCount = iCount & 1;
+	//		iCount >>= 1;
+	//		memset32(pBuffer1, iValueToSet, iCount);
+	//		pDest = (char *)&pBuffer1[2 * iCount];
+	//		for (i = iInvertedCount; i; --i)
+	//		{
+	//			*(_WORD *)pDest = wColor;
+	//			pDest += 2;
+	//		}
 
 	return 0;
 }
